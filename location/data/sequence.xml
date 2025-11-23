@@ -1,0 +1,14 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Séquence pour les numéros de contrat -->
+        <record id="seq_location_location" model="ir.sequence">
+            <field name="name">Numéro de contrat de location</field>
+            <field name="code">location.location</field>
+            <field name="prefix">LOC/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+    </data>
+</odoo>

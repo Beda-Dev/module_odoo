@@ -1,0 +1,260 @@
+<odoo>
+    <!-- Vue Liste -->
+    <record id="view_location_list" model="ir.ui.view">
+        <field name="name">Location List</field>
+        <field name="model">location.location</field>
+        <field name="arch" type="xml">
+            <list string="Locations" decoration-info="statut == 'brouillon'" 
+                  decoration-success="statut == 'confirmee'"
+                  decoration-primary="statut == 'en_cours'"
+                  decoration-muted="statut == 'terminee'"
+                  decoration-danger="statut == 'annulee'">
+                <field name="name"/>
+                <field name="vehicule_id"/>
+                <field name="client_id"/>
+                <field name="date_debut"/>
+                <field name="date_fin"/>
+                <field name="duree_jours"/>
+                <field name="montant_total" widget="monetary"/>
+                <field name="statut" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue Kanban -->
+    <record id="view_location_kanban" model="ir.ui.view">
+        <field name="name">Location Kanban</field>
+        <field name="model">location.location</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="statut" class="o_kanban_small_column">
+                <field name="name"/>
+                <field name="vehicule_id"/>
+                <field name="client_id"/>
+                <field name="date_debut"/>
+                <field name="date_fin"/>
+                <field name="montant_total"/>
+                <field name="statut"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="name"/>
+                                    </strong>
+                                </div>
+                                <span class="badge badge-pill">
+                                    <field name="montant_total" widget="monetary"/>
+                                </span>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <field name="vehicule_id"/>
+                                <br/>
+                                <field name="client_id"/>
+                                <br/>
+                                <i class="fa fa-calendar"/> 
+                                <t t-esc="record.date_debut.value"/> - 
+                                <t t-esc="record.date_fin.value"/>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Vue Calendrier -->
+    <record id="view_location_calendar" model="ir.ui.view">
+        <field name="name">Location Calendar</field>
+        <field name="model">location.location</field>
+        <field name="arch" type="xml">
+            <calendar string="Calendrier des locations" 
+                     date_start="date_debut" 
+                     date_stop="date_fin"
+                     color="vehicule_id"
+                     event_open_popup="true"
+                     mode="month">
+                <field name="vehicule_id"/>
+                <field name="client_id"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- Vue Formulaire améliorée -->
+    <record id="view_location_form" model="ir.ui.view">
+        <field name="name">Location Form</field>
+        <field name="model">location.location</field>
+        <field name="arch" type="xml">
+            <form string="Contrat de location">
+                <header>
+                    <button name="action_confirmer" string="Confirmer" type="object" 
+                            class="btn-primary" invisible="statut != 'brouillon'"/>
+                    <button name="action_demarrer" string="Démarrer" type="object" 
+                            class="btn-primary" invisible="statut != 'confirmee'"/>
+                    <button name="action_terminer" string="Terminer" type="object" 
+                            class="btn-success" invisible="statut != 'en_cours'"/>
+                    <button name="action_annuler" string="Annuler" type="object" 
+                            class="btn-danger" invisible="statut in ['terminee', 'annulee']"/>
+                    <button name="action_create_invoice" string="Créer facture" type="object" 
+                            class="btn-secondary" invisible="invoice_id or statut == 'brouillon'"/>
+                    <button name="action_view_invoice" string="Voir facture" type="object" 
+                            class="btn-info" invisible="not invoice_id"/>
+                    <button name="action_print_contract" string="Imprimer contrat" type="object" 
+                            class="btn-secondary" invisible="statut == 'brouillon'"/>
+                    <field name="statut" widget="statusbar" 
+                           statusbar_visible="brouillon,confirmee,en_cours,terminee,annulee"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object" 
+                                name="action_view_invoice" icon="fa-pencil-square-o"
+                                invisible="not invoice_id">
+                            <field name="invoice_count" widget="statinfo" string="Facture"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group name="main_info" string="Informations principales">
+                            <field name="vehicule_id" 
+                                   domain="[('statut', '=', 'disponible')]"
+                                   options="{'no_create': True}"/>
+                            <field name="client_id" 
+                                   context="{'show_address': 1}"
+                                   options="{'always_reload': True}"/>
+                            <field name="conducteur_additionnel_ids" widget="many2many_tags"/>
+                        </group>
+                        <group name="dates" string="Dates et durée">
+                            <field name="date_debut"/>
+                            <field name="date_fin"/>
+                            <field name="duree_jours"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Tarification" name="tarification">
+                            <group>
+                                <group string="Montants">
+                                    <field name="prix_journalier" readonly="1" widget="monetary"/>
+                                    <field name="montant_location" readonly="1" widget="monetary"/>
+                                    <field name="reduction"/>
+                                    <field name="frais_supplementaires" widget="monetary"/>
+                                    <field name="montant_total" readonly="1" widget="monetary" 
+                                           class="oe_subtotal_footer_separator"/>
+                                </group>
+                                <group string="Caution">
+                                    <field name="montant_caution" readonly="1" widget="monetary"/>
+                                    <field name="caution_payee"/>
+                                    <field name="caution_restituee"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Paiement">
+                                    <field name="mode_paiement"/>
+                                </group>
+                                <group string="Options">
+                                    <field name="assurance_tous_risques"/>
+                                    <field name="gps_inclus"/>
+                                    <field name="siege_bebe"/>
+                                </group>
+                            </group>
+                        </page>
+                        
+                        <page string="État du véhicule" name="etat_vehicule">
+                            <group>
+                                <group string="Départ">
+                                    <field name="kilometrage_depart"/>
+                                    <field name="niveau_carburant_depart"/>
+                                    <field name="etat_vehicule_depart" 
+                                           placeholder="Décrivez l'état du véhicule au départ..."/>
+                                </group>
+                                <group string="Retour">
+                                    <field name="kilometrage_retour"/>
+                                    <field name="niveau_carburant_retour"/>
+                                    <field name="kilometrage_parcouru"/>
+                                    <field name="etat_vehicule_retour" 
+                                           placeholder="Décrivez l'état du véhicule au retour..."/>
+                                </group>
+                            </group>
+                        </page>
+                        
+                        <page string="Notes" name="notes">
+                            <field name="notes" placeholder="Notes additionnelles..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vue Recherche -->
+    <record id="view_location_search" model="ir.ui.view">
+        <field name="name">Location Search</field>
+        <field name="model">location.location</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="vehicule_id"/>
+                <field name="client_id"/>
+                <field name="date_debut"/>
+                <field name="date_fin"/>
+                <separator/>
+                <filter string="Brouillon" name="brouillon" 
+                        domain="[('statut', '=', 'brouillon')]"/>
+                <filter string="Confirmées" name="confirmee" 
+                        domain="[('statut', '=', 'confirmee')]"/>
+                <filter string="En cours" name="en_cours" 
+                        domain="[('statut', '=', 'en_cours')]"/>
+                <filter string="Terminées" name="terminee" 
+                        domain="[('statut', '=', 'terminee')]"/>
+                <separator/>
+                <filter string="Ce mois" name="ce_mois" 
+                        domain="[('date_debut', '>=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d')),
+                                ('date_debut', '&lt;=', (context_today() + relativedelta(day=31)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Sans facture" name="sans_facture" 
+                        domain="[('invoice_id', '=', False), ('statut', '=', 'terminee')]"/>
+                <group expand="0" string="Grouper par">
+                    <filter string="Véhicule" name="group_vehicule" 
+                            context="{'group_by': 'vehicule_id'}"/>
+                    <filter string="Client" name="group_client" 
+                            context="{'group_by': 'client_id'}"/>
+                    <filter string="Statut" name="group_statut" 
+                            context="{'group_by': 'statut'}"/>
+                    <filter string="Mois de début" name="group_mois" 
+                            context="{'group_by': 'date_debut:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Vue Pivot pour analyses -->
+    <record id="view_location_pivot" model="ir.ui.view">
+        <field name="name">Location Pivot</field>
+        <field name="model">location.location</field>
+        <field name="arch" type="xml">
+            <pivot string="Analyse des locations">
+                <field name="vehicule_id" type="row"/>
+                <field name="date_debut" interval="month" type="col"/>
+                <field name="montant_total" type="measure"/>
+                <field name="duree_jours" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Vue Graphique -->
+    <record id="view_location_graph" model="ir.ui.view">
+        <field name="name">Location Graph</field>
+        <field name="model">location.location</field>
+        <field name="arch" type="xml">
+            <graph string="Statistiques des locations" type="bar">
+                <field name="date_debut" interval="month"/>
+                <field name="montant_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+</odoo>

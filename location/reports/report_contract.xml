@@ -1,0 +1,322 @@
+<odoo>
+    <!-- Rapport de contrat de location -->
+    <record id="report_location_contract" model="ir.actions.report">
+        <field name="name">Contrat de location</field>
+        <field name="model">location.location</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">location.report_location_contract_document</field>
+        <field name="report_file">location.report_location_contract_document</field>
+        <field name="binding_model_id" ref="model_location_location"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_location_contract_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- En-tête du contrat -->
+                        <div class="row mb-4">
+                            <div class="col-12 text-center">
+                                <h2 style="color: #875A7B; border-bottom: 3px solid #875A7B; padding-bottom: 10px;">
+                                    CONTRAT DE LOCATION DE VÉHICULE
+                                </h2>
+                                <h4 class="mt-3">
+                                    Contrat N° <span t-field="doc.name"/>
+                                </h4>
+                            </div>
+                        </div>
+
+                        <!-- Informations sur les parties -->
+                        <div class="row mt-4">
+                            <div class="col-6">
+                                <h5 style="color: #875A7B;">LOUEUR</h5>
+                                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                                    <strong><span t-field="doc.company_id.name"/></strong><br/>
+                                    <span t-field="doc.company_id.street"/><br/>
+                                    <t t-if="doc.company_id.street2">
+                                        <span t-field="doc.company_id.street2"/><br/>
+                                    </t>
+                                    <span t-field="doc.company_id.zip"/>
+                                    <span t-field="doc.company_id.city"/><br/>
+                                    <t t-if="doc.company_id.phone">
+                                        Tél: <span t-field="doc.company_id.phone"/><br/>
+                                    </t>
+                                    <t t-if="doc.company_id.email">
+                                        Email: <span t-field="doc.company_id.email"/>
+                                    </t>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <h5 style="color: #875A7B;">LOCATAIRE</h5>
+                                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                                    <strong><span t-field="doc.client_id.name"/></strong><br/>
+                                    <t t-if="doc.client_id.street">
+                                        <span t-field="doc.client_id.street"/><br/>
+                                    </t>
+                                    <t t-if="doc.client_id.street2">
+                                        <span t-field="doc.client_id.street2"/><br/>
+                                    </t>
+                                    <t t-if="doc.client_id.zip or doc.client_id.city">
+                                        <span t-field="doc.client_id.zip"/>
+                                        <span t-field="doc.client_id.city"/><br/>
+                                    </t>
+                                    <t t-if="doc.client_id.phone">
+                                        Tél: <span t-field="doc.client_id.phone"/><br/>
+                                    </t>
+                                    <t t-if="doc.client_id.email">
+                                        Email: <span t-field="doc.client_id.email"/>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informations sur le véhicule -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5 style="color: #875A7B;">VÉHICULE LOUÉ</h5>
+                                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                                    <div class="row">
+                                        <div class="col-3">
+                                            <t t-if="doc.vehicule_id.image_128">
+                                                <img t-att-src="image_data_uri(doc.vehicule_id.image_128)" 
+                                                     style="max-width: 150px; border: 1px solid #ddd; border-radius: 5px;"/>
+                                            </t>
+                                        </div>
+                                        <div class="col-9">
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td><strong>Véhicule:</strong></td>
+                                                    <td><span t-field="doc.vehicule_id.name"/></td>
+                                                    <td><strong>Marque:</strong></td>
+                                                    <td><span t-field="doc.vehicule_id.marque_id.name"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Modèle:</strong></td>
+                                                    <td><span t-field="doc.vehicule_id.modele"/></td>
+                                                    <td><strong>Immatriculation:</strong></td>
+                                                    <td><span t-field="doc.vehicule_id.immatriculation"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Année:</strong></td>
+                                                    <td><span t-field="doc.vehicule_id.annee"/></td>
+                                                    <td><strong>Carburant:</strong></td>
+                                                    <td><span t-field="doc.vehicule_id.type_carburant"/></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Couleur:</strong></td>
+                                                    <td><span t-field="doc.vehicule_id.couleur"/></td>
+                                                    <td><strong>Places:</strong></td>
+                                                    <td><span t-field="doc.vehicule_id.nombre_places"/></td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Période de location -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5 style="color: #875A7B;">PÉRIODE DE LOCATION</h5>
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <td style="background-color: #f5f5f5;"><strong>Date de début:</strong></td>
+                                        <td><span t-field="doc.date_debut" t-options="{'widget': 'date'}"/></td>
+                                        <td style="background-color: #f5f5f5;"><strong>Date de fin:</strong></td>
+                                        <td><span t-field="doc.date_fin" t-options="{'widget': 'date'}"/></td>
+                                        <td style="background-color: #f5f5f5;"><strong>Durée:</strong></td>
+                                        <td><span t-field="doc.duree_jours"/> jour(s)</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- État du véhicule -->
+                        <div class="row mt-4">
+                            <div class="col-6">
+                                <h5 style="color: #875A7B;">ÉTAT AU DÉPART</h5>
+                                <table class="table table-sm table-bordered">
+                                    <tr>
+                                        <td><strong>Kilométrage:</strong></td>
+                                        <td><span t-field="doc.kilometrage_depart"/> km</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Niveau carburant:</strong></td>
+                                        <td><span t-field="doc.niveau_carburant_depart"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <strong>Observations:</strong><br/>
+                                            <span t-field="doc.etat_vehicule_depart"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-6">
+                                <h5 style="color: #875A7B;">ÉTAT AU RETOUR</h5>
+                                <table class="table table-sm table-bordered">
+                                    <tr>
+                                        <td><strong>Kilométrage:</strong></td>
+                                        <td>
+                                            <t t-if="doc.kilometrage_retour">
+                                                <span t-field="doc.kilometrage_retour"/> km
+                                            </t>
+                                            <t t-else="">À compléter</t>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Niveau carburant:</strong></td>
+                                        <td>
+                                            <t t-if="doc.niveau_carburant_retour">
+                                                <span t-field="doc.niveau_carburant_retour"/>
+                                            </t>
+                                            <t t-else="">À compléter</t>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <strong>Observations:</strong><br/>
+                                            <span t-field="doc.etat_vehicule_retour"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tarification -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5 style="color: #875A7B;">TARIFICATION</h5>
+                                <table class="table table-bordered">
+                                    <thead style="background-color: #875A7B; color: white;">
+                                        <tr>
+                                            <th>Description</th>
+                                            <th class="text-right">Durée</th>
+                                            <th class="text-right">Prix unitaire</th>
+                                            <th class="text-right">Montant</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Location du véhicule</td>
+                                            <td class="text-right"><span t-field="doc.duree_jours"/> jour(s)</td>
+                                            <td class="text-right"><span t-field="doc.prix_journalier" t-options="{'widget': 'monetary', 'display_currency': doc.company_id.currency_id}"/></td>
+                                            <td class="text-right"><span t-field="doc.montant_location" t-options="{'widget': 'monetary', 'display_currency': doc.company_id.currency_id}"/></td>
+                                        </tr>
+                                        <t t-if="doc.assurance_tous_risques">
+                                            <tr>
+                                                <td>Assurance tous risques</td>
+                                                <td class="text-right" colspan="2">Inclus</td>
+                                                <td class="text-right">-</td>
+                                            </tr>
+                                        </t>
+                                        <t t-if="doc.gps_inclus">
+                                            <tr>
+                                                <td>GPS</td>
+                                                <td class="text-right" colspan="2">Inclus</td>
+                                                <td class="text-right">-</td>
+                                            </tr>
+                                        </t>
+                                        <t t-if="doc.siege_bebe">
+                                            <tr>
+                                                <td>Siège bébé</td>
+                                                <td class="text-right" colspan="2">Inclus</td>
+                                                <td class="text-right">-</td>
+                                            </tr>
+                                        </t>
+                                        <t t-if="doc.reduction > 0">
+                                            <tr style="color: green;">
+                                                <td>Réduction (<span t-field="doc.reduction"/>%)</td>
+                                                <td class="text-right" colspan="2"></td>
+                                                <td class="text-right">
+                                                    -<span t-esc="doc.montant_location * doc.reduction / 100" 
+                                                           t-options="{'widget': 'monetary', 'display_currency': doc.company_id.currency_id}"/>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                        <t t-if="doc.frais_supplementaires > 0">
+                                            <tr>
+                                                <td>Frais supplémentaires</td>
+                                                <td class="text-right" colspan="2"></td>
+                                                <td class="text-right">
+                                                    <span t-field="doc.frais_supplementaires" 
+                                                          t-options="{'widget': 'monetary', 'display_currency': doc.company_id.currency_id}"/>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                        <tr style="background-color: #f5f5f5; font-weight: bold; font-size: 1.2em;">
+                                            <td colspan="3" class="text-right">MONTANT TOTAL:</td>
+                                            <td class="text-right">
+                                                <span t-field="doc.montant_total" 
+                                                      t-options="{'widget': 'monetary', 'display_currency': doc.company_id.currency_id}"/>
+                                            </td>
+                                        </tr>
+                                        <tr style="background-color: #fff3cd;">
+                                            <td colspan="3" class="text-right">
+                                                <strong>Caution (à restituer):</strong>
+                                            </td>
+                                            <td class="text-right">
+                                                <strong>
+                                                    <span t-field="doc.montant_caution" 
+                                                          t-options="{'widget': 'monetary', 'display_currency': doc.company_id.currency_id}"/>
+                                                </strong>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Conditions générales -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5 style="color: #875A7B;">CONDITIONS GÉNÉRALES</h5>
+                                <div style="border: 1px solid #ddd; padding: 15px; font-size: 0.9em;">
+                                    <ol>
+                                        <li>Le locataire s'engage à restituer le véhicule dans l'état où il l'a reçu.</li>
+                                        <li>Le véhicule doit être restitué avec le même niveau de carburant qu'au départ.</li>
+                                        <li>Tout retard de restitution sera facturé au tarif journalier en vigueur.</li>
+                                        <li>Le locataire est responsable de toute infraction au code de la route.</li>
+                                        <li>L'assurance ne couvre pas les dommages causés par négligence ou mauvaise utilisation.</li>
+                                        <li>La caution sera restituée après vérification de l'état du véhicule.</li>
+                                        <li>Interdiction formelle de sous-louer le véhicule ou de le prêter.</li>
+                                        <li>Le véhicule ne doit pas être utilisé pour des courses ou des compétitions.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Signatures -->
+                        <div class="row mt-5">
+                            <div class="col-6 text-center">
+                                <div style="border-top: 2px solid #000; padding-top: 10px; margin: 0 30px;">
+                                    <strong>Signature du Loueur</strong><br/>
+                                    <span t-field="doc.company_id.name"/><br/>
+                                    Date: <span t-field="doc.create_date" t-options="{'widget': 'date'}"/>
+                                </div>
+                            </div>
+                            <div class="col-6 text-center">
+                                <div style="border-top: 2px solid #000; padding-top: 10px; margin: 0 30px;">
+                                    <strong>Signature du Locataire</strong><br/>
+                                    <span t-field="doc.client_id.name"/><br/>
+                                    Date: ____________________
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pied de page avec informations légales -->
+                        <div class="row mt-5" style="border-top: 1px solid #ddd; padding-top: 10px; font-size: 0.8em; color: #666;">
+                            <div class="col-12 text-center">
+                                <p>
+                                    Document généré le <span t-field="doc.create_date" t-options="{'widget': 'datetime'}"/>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

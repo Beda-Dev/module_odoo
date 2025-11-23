@@ -1,0 +1,165 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Marques de véhicules -->
+        <record id="demo_marque_peugeot" model="location.marque">
+            <field name="name">Peugeot</field>
+            <field name="code">PEU</field>
+            <field name="description">Constructeur automobile français</field>
+            <field name="actif">True</field>
+        </record>
+
+        <record id="demo_marque_renault" model="location.marque">
+            <field name="name">Renault</field>
+            <field name="code">REN</field>
+            <field name="description">Constructeur automobile français</field>
+            <field name="actif">True</field>
+        </record>
+
+        <record id="demo_marque_tesla" model="location.marque">
+            <field name="name">Tesla</field>
+            <field name="code">TSL</field>
+            <field name="description">Constructeur automobile électrique</field>
+            <field name="actif">True</field>
+        </record>
+
+        <record id="demo_marque_citroen" model="location.marque">
+            <field name="name">Citroën</field>
+            <field name="code">CIT</field>
+            <field name="description">Constructeur automobile français</field>
+            <field name="actif">True</field>
+        </record>
+
+        <record id="demo_marque_bmw" model="location.marque">
+            <field name="name">BMW</field>
+            <field name="code">BMW</field>
+            <field name="description">Constructeur automobile allemand</field>
+            <field name="actif">True</field>
+        </record>
+
+        <!-- Véhicules de démonstration -->
+        <record id="demo_vehicule_1" model="location.vehicule">
+            <field name="name">Peugeot 208 Grise</field>
+            <field name="marque_id" ref="demo_marque_peugeot"/>
+            <field name="modele">208</field>
+            <field name="immatriculation">AB-123-CD</field>
+            <field name="annee">2022</field>
+            <field name="couleur">Grise</field>
+            <field name="type_carburant">essence</field>
+            <field name="nombre_places">5</field>
+            <field name="kilometrage">15000</field>
+            <field name="prix_journalier">45.00</field>
+            <field name="prix_hebdomadaire">280.00</field>
+            <field name="prix_mensuel">900.00</field>
+            <field name="caution">500.00</field>
+            <field name="statut">disponible</field>
+        </record>
+
+        <record id="demo_vehicule_2" model="location.vehicule">
+            <field name="name">Renault Clio Blanche</field>
+            <field name="marque_id" ref="demo_marque_renault"/>
+            <field name="modele">Clio</field>
+            <field name="immatriculation">EF-456-GH</field>
+            <field name="annee">2023</field>
+            <field name="couleur">Blanche</field>
+            <field name="type_carburant">diesel</field>
+            <field name="nombre_places">5</field>
+            <field name="kilometrage">8000</field>
+            <field name="prix_journalier">50.00</field>
+            <field name="prix_hebdomadaire">320.00</field>
+            <field name="prix_mensuel">1000.00</field>
+            <field name="caution">600.00</field>
+            <field name="statut">disponible</field>
+        </record>
+
+        <record id="demo_vehicule_3" model="location.vehicule">
+            <field name="name">Tesla Model 3 Noire</field>
+            <field name="marque_id" ref="demo_marque_tesla"/>
+            <field name="modele">Model 3</field>
+            <field name="immatriculation">IJ-789-KL</field>
+            <field name="annee">2024</field>
+            <field name="couleur">Noire</field>
+            <field name="type_carburant">electrique</field>
+            <field name="nombre_places">5</field>
+            <field name="kilometrage">2000</field>
+            <field name="prix_journalier">120.00</field>
+            <field name="prix_hebdomadaire">780.00</field>
+            <field name="prix_mensuel">2800.00</field>
+            <field name="caution">1500.00</field>
+            <field name="statut">disponible</field>
+        </record>
+
+        <record id="demo_vehicule_4" model="location.vehicule">
+            <field name="name">Citroën C3 Rouge</field>
+            <field name="marque_id" ref="demo_marque_citroen"/>
+            <field name="modele">C3</field>
+            <field name="immatriculation">MN-012-OP</field>
+            <field name="annee">2021</field>
+            <field name="couleur">Rouge</field>
+            <field name="type_carburant">essence</field>
+            <field name="nombre_places">5</field>
+            <field name="kilometrage">35000</field>
+            <field name="prix_journalier">40.00</field>
+            <field name="prix_hebdomadaire">250.00</field>
+            <field name="prix_mensuel">800.00</field>
+            <field name="caution">450.00</field>
+            <field name="statut">disponible</field>
+        </record>
+
+        <record id="demo_vehicule_5" model="location.vehicule">
+            <field name="name">BMW X3 Bleue</field>
+            <field name="marque_id" ref="demo_marque_bmw"/>
+            <field name="modele">X3</field>
+            <field name="immatriculation">QR-345-ST</field>
+            <field name="annee">2023</field>
+            <field name="couleur">Bleue</field>
+            <field name="type_carburant">hybride</field>
+            <field name="nombre_places">5</field>
+            <field name="kilometrage">12000</field>
+            <field name="prix_journalier">95.00</field>
+            <field name="prix_hebdomadaire">600.00</field>
+            <field name="prix_mensuel">2200.00</field>
+            <field name="caution">1200.00</field>
+            <field name="statut">maintenance</field>
+        </record>
+
+        <!-- Locations de démonstration -->
+        <record id="demo_location_1" model="location.location">
+            <field name="name">LOC/2025/00001</field>
+            <field name="vehicule_id" ref="demo_vehicule_1"/>
+            <field name="client_id" ref="base.res_partner_2"/>
+            <field name="date_debut" eval="(datetime.date.today() + relativedelta(days=1))"/>
+            <field name="date_fin" eval="(datetime.date.today() + relativedelta(days=5))"/>
+            <field name="statut">confirmee</field>
+            <field name="kilometrage_depart">15000</field>
+            <field name="niveau_carburant_depart">plein</field>
+            <field name="mode_paiement">carte</field>
+            <field name="caution_payee" eval="True"/>
+            <field name="assurance_tous_risques" eval="True"/>
+        </record>
+
+        <record id="demo_location_2" model="location.location">
+            <field name="name">LOC/2025/00002</field>
+            <field name="vehicule_id" ref="demo_vehicule_2"/>
+            <field name="client_id" ref="base.res_partner_3"/>
+            <field name="date_debut" eval="(datetime.date.today() - relativedelta(days=3))"/>
+            <field name="date_fin" eval="(datetime.date.today() + relativedelta(days=4))"/>
+            <field name="statut">en_cours</field>
+            <field name="kilometrage_depart">8000</field>
+            <field name="niveau_carburant_depart">plein</field>
+            <field name="mode_paiement">especes</field>
+            <field name="caution_payee" eval="True"/>
+            <field name="gps_inclus" eval="True"/>
+        </record>
+
+        <record id="demo_location_3" model="location.location">
+            <field name="name">LOC/2025/00003</field>
+            <field name="vehicule_id" ref="demo_vehicule_4"/>
+            <field name="client_id" ref="base.res_partner_4"/>
+            <field name="date_debut" eval="(datetime.date.today() + relativedelta(days=7))"/>
+            <field name="date_fin" eval="(datetime.date.today() + relativedelta(days=14))"/>
+            <field name="statut">brouillon</field>
+            <field name="mode_paiement">virement</field>
+            <field name="reduction">10</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,423 @@
+<odoo>
+    <!-- Rapport Facture de location (optionnel) -->
+    <record id="report_location_invoice" model="ir.actions.report">
+        <field name="name">Facture de location</field>
+        <field name="model">location.location</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">location.report_location_invoice_document</field>
+        <field name="report_file">location.report_location_invoice_document</field>
+        <field name="binding_model_id" ref="model_location_location"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Template de la facture de location -->
+    <template id="report_location_invoice_document">
+        <t t-set="datetime" t-value="__import__('datetime')"/>
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Facture de Location</h2>
+                        
+                        <div class="row mt32 mb32">
+                            <div class="col-6">
+                                <strong>Client:</strong><br/>
+                                <span t-field="doc.client_id" 
+                                      t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}'/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Facture N°:</strong> <span t-field="doc.name"/><br/>
+                                <strong>Date:</strong> <span t-field="doc.date_debut" t-options='{"widget": "date"}'/><br/>
+                                <t t-if="doc.invoice_id">
+                                    <strong>Facture comptable:</strong> <span t-field="doc.invoice_id.name"/>
+                                </t>
+                            </div>
+                        </div>
+
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-right">Quantité</th>
+                                    <th class="text-right">Prix unitaire</th>
+                                    <th class="text-right">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        Location <span t-field="doc.vehicule_id.name"/><br/>
+                                        <small>
+                                            Du <span t-field="doc.date_debut" t-options='{"widget": "date"}'/> 
+                                            au <span t-field="doc.date_fin" t-options='{"widget": "date"}'/>
+                                        </small>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-field="doc.duree_jours"/> jour(s)
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-field="doc.prix_journalier" t-options='{"widget": "monetary", "display_currency": doc.company_id.currency_id}'/>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-field="doc.montant_location" t-options='{"widget": "monetary", "display_currency": doc.company_id.currency_id}'/>
+                                    </td>
+                                </tr>
+                                <t t-if="doc.frais_supplementaires > 0">
+                                    <tr>
+                                        <td>Frais supplémentaires</td>
+                                        <td class="text-right">1</td>
+                                        <td class="text-right">
+                                            <span t-field="doc.frais_supplementaires" t-options='{"widget": "monetary", "display_currency": doc.company_id.currency_id}'/>
+                                        </td>
+                                        <td class="text-right">
+                                            <span t-field="doc.frais_supplementaires" t-options='{"widget": "monetary", "display_currency": doc.company_id.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <t t-if="doc.reduction > 0">
+                                    <tr>
+                                        <td>Réduction (<span t-field="doc.reduction"/>%)</td>
+                                        <td class="text-right"></td>
+                                        <td class="text-right"></td>
+                                        <td class="text-right" style="color: green;">
+                                            -<span t-esc="doc.montant_location * doc.reduction / 100" 
+                                                   t-options='{"widget": "monetary", "display_currency": doc.company_id.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <div class="row">
+                            <div class="col-6"></div>
+                            <div class="col-6">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Total HT:</strong></td>
+                                        <td class="text-right">
+                                            <span t-field="doc.montant_total" t-options='{"widget": "monetary", "display_currency": doc.company_id.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                    <tr style="border-top: 2px solid black;">
+                                        <td><strong>Total TTC:</strong></td>
+                                        <td class="text-right">
+                                            <strong><span t-field="doc.montant_total" t-options='{"widget": "monetary", "display_currency": doc.company_id.currency_id}'/></strong>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- Rapport Liste des véhicules -->
+    <record id="report_vehicule_list" model="ir.actions.report">
+        <field name="name">Liste des véhicules</field>
+        <field name="model">location.vehicule</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">location.report_vehicule_list_document</field>
+        <field name="report_file">location.report_vehicule_list_document</field>
+        <field name="binding_model_id" ref="model_location_vehicule"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Template liste des véhicules -->
+    <template id="report_vehicule_list_document">
+        <t t-set="datetime" t-value="__import__('datetime')"/>
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2>Liste des Véhicules</h2>
+                    <p class="text-muted">
+                        Document généré le <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y')"/>
+                    </p>
+
+                    <table class="table table-sm table-bordered mt-4">
+                        <thead style="background-color: #875A7B; color: white;">
+                            <tr>
+                                <th>Véhicule</th>
+                                <th>Marque/Modèle</th>
+                                <th>Immatriculation</th>
+                                <th>Année</th>
+                                <th>Carburant</th>
+                                <th class="text-right">Prix/jour</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="docs" t-as="vehicule">
+                                <tr>
+                                    <td><span t-field="vehicule.name"/></td>
+                                    <td>
+                                        <span t-field="vehicule.marque"/> 
+                                        <span t-field="vehicule.modele"/>
+                                    </td>
+                                    <td><span t-field="vehicule.immatriculation"/></td>
+                                    <td><span t-field="vehicule.annee"/></td>
+                                    <td><span t-field="vehicule.type_carburant"/></td>
+                                    <td class="text-right">
+                                        <span t-field="vehicule.prix_journalier" t-options='{"widget": "monetary"}'/>
+                                    </td>
+                                    <td>
+                                        <t t-if="vehicule.statut == 'disponible'">
+                                            <span class="badge badge-success">Disponible</span>
+                                        </t>
+                                        <t t-elif="vehicule.statut == 'loue'">
+                                            <span class="badge badge-danger">Loué</span>
+                                        </t>
+                                        <t t-elif="vehicule.statut == 'maintenance'">
+                                            <span class="badge badge-warning">Maintenance</span>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="badge badge-secondary">Hors service</span>
+                                        </t>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <div class="row mt-5">
+                        <div class="col-12">
+                            <p><strong>Résumé:</strong></p>
+                            <ul>
+                                <li>Total de véhicules: <strong><t t-esc="len(docs)"/></strong></li>
+                                <li>Disponibles: <strong><t t-esc="len(docs.filtered(lambda v: v.statut == 'disponible'))"/></strong></li>
+                                <li>Loués: <strong><t t-esc="len(docs.filtered(lambda v: v.statut == 'loue'))"/></strong></li>
+                                <li>En maintenance: <strong><t t-esc="len(docs.filtered(lambda v: v.statut == 'maintenance'))"/></strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Rapport État des lieux -->
+    <record id="report_location_checklist" model="ir.actions.report">
+        <field name="name">État des lieux</field>
+        <field name="model">location.location</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">location.report_location_checklist_document</field>
+        <field name="report_file">location.report_location_checklist_document</field>
+        <field name="binding_model_id" ref="model_location_location"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Template état des lieux -->
+    <template id="report_location_checklist_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <div class="text-center">
+                            <h2 style="color: #875A7B;">ÉTAT DES LIEUX</h2>
+                            <h4>Contrat N° <span t-field="doc.name"/></h4>
+                        </div>
+
+                        <!-- Informations générales -->
+                        <div class="row mt-4">
+                            <div class="col-6">
+                                <h5>Véhicule</h5>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Nom:</strong></td>
+                                        <td><span t-field="doc.vehicule_id.name"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Immatriculation:</strong></td>
+                                        <td><span t-field="doc.vehicule_id.immatriculation"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Couleur:</strong></td>
+                                        <td><span t-field="doc.vehicule_id.couleur"/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-6">
+                                <h5>Client</h5>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Nom:</strong></td>
+                                        <td><span t-field="doc.client_id.name"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Téléphone:</strong></td>
+                                        <td><span t-field="doc.client_id.phone"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Date:</strong></td>
+                                        <td><span t-field="doc.date_debut" t-options='{"widget": "date"}'/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Checklist départ -->
+                        <div class="mt-4">
+                            <h5 style="background-color: #875A7B; color: white; padding: 10px;">
+                                ÉTAT AU DÉPART
+                            </h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <td width="50%"><strong>Kilométrage:</strong></td>
+                                    <td><span t-field="doc.kilometrage_depart"/> km</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Niveau de carburant:</strong></td>
+                                    <td><span t-field="doc.niveau_carburant_depart"/></td>
+                                </tr>
+                            </table>
+
+                            <!-- Checklist visuelle départ -->
+                            <h6>Contrôle visuel extérieur:</h6>
+                            <table class="table table-bordered table-sm">
+                                <tr>
+                                    <td>☐ Carrosserie (rayures, bosses)</td>
+                                    <td>☐ Pare-brise (fissures, impacts)</td>
+                                </tr>
+                                <tr>
+                                    <td>☐ Rétroviseurs</td>
+                                    <td>☐ Feux avant et arrière</td>
+                                </tr>
+                                <tr>
+                                    <td>☐ Pneus et roues</td>
+                                    <td>☐ Plaques d'immatriculation</td>
+                                </tr>
+                            </table>
+
+                            <h6>Contrôle intérieur:</h6>
+                            <table class="table table-bordered table-sm">
+                                <tr>
+                                    <td>☐ Sièges et tapis</td>
+                                    <td>☐ Tableau de bord</td>
+                                </tr>
+                                <tr>
+                                    <td>☐ Propreté générale</td>
+                                    <td>☐ Équipements (radio, GPS, etc.)</td>
+                                </tr>
+                            </table>
+
+                            <h6>Documents et accessoires:</h6>
+                            <table class="table table-bordered table-sm">
+                                <tr>
+                                    <td>☐ Carte grise</td>
+                                    <td>☐ Assurance</td>
+                                </tr>
+                                <tr>
+                                    <td>☐ Triangle de signalisation</td>
+                                    <td>☐ Gilet de sécurité</td>
+                                </tr>
+                                <tr>
+                                    <td>☐ Roue de secours / Kit de dépannage</td>
+                                    <td>☐ Clés (nombre: ___)</td>
+                                </tr>
+                            </table>
+
+                            <h6>Observations au départ:</h6>
+                            <div style="border: 1px solid #ddd; padding: 15px; min-height: 100px;">
+                                <span t-field="doc.etat_vehicule_depart"/>
+                            </div>
+                        </div>
+
+                        <!-- Checklist retour -->
+                        <div class="mt-4" style="page-break-before: always;">
+                            <h5 style="background-color: #875A7B; color: white; padding: 10px;">
+                                ÉTAT AU RETOUR
+                            </h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <td width="50%"><strong>Kilométrage:</strong></td>
+                                    <td>
+                                        <t t-if="doc.kilometrage_retour">
+                                            <span t-field="doc.kilometrage_retour"/> km
+                                        </t>
+                                        <t t-else="">
+                                            ______________ km
+                                        </t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Niveau de carburant:</strong></td>
+                                    <td>
+                                        <t t-if="doc.niveau_carburant_retour">
+                                            <span t-field="doc.niveau_carburant_retour"/>
+                                        </t>
+                                        <t t-else="">
+                                            ______________
+                                        </t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Km parcourus:</strong></td>
+                                    <td>
+                                        <t t-if="doc.kilometrage_parcouru">
+                                            <span t-field="doc.kilometrage_parcouru"/> km
+                                        </t>
+                                        <t t-else="">
+                                            ______________
+                                        </t>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Checklist visuelle retour -->
+                            <h6>Contrôle visuel extérieur:</h6>
+                            <table class="table table-bordered table-sm">
+                                <tr>
+                                    <td>☐ Carrosserie (rayures, bosses)</td>
+                                    <td>☐ Pare-brise (fissures, impacts)</td>
+                                </tr>
+                                <tr>
+                                    <td>☐ Rétroviseurs</td>
+                                    <td>☐ Feux avant et arrière</td>
+                                </tr>
+                                <tr>
+                                    <td>☐ Pneus et roues</td>
+                                    <td>☐ Plaques d'immatriculation</td>
+                                </tr>
+                            </table>
+
+                            <h6>Contrôle intérieur:</h6>
+                            <table class="table table-bordered table-sm">
+                                <tr>
+                                    <td>☐ Sièges et tapis</td>
+                                    <td>☐ Tableau de bord</td>
+                                </tr>
+                                <tr>
+                                    <td>☐ Propreté générale</td>
+                                    <td>☐ Équipements (radio, GPS, etc.)</td>
+                                </tr>
+                            </table>
+
+                            <h6>Observations au retour:</h6>
+                            <div style="border: 1px solid #ddd; padding: 15px; min-height: 100px;">
+                                <span t-field="doc.etat_vehicule_retour"/>
+                            </div>
+                        </div>
+
+                        <!-- Signatures -->
+                        <div class="row mt-5">
+                            <div class="col-6 text-center">
+                                <div style="border-top: 2px solid #000; padding-top: 10px; margin: 0 30px;">
+                                    <strong>Signature du Loueur</strong><br/>
+                                    Date: ____/____/________
+                                </div>
+                            </div>
+                            <div class="col-6 text-center">
+                                <div style="border-top: 2px solid #000; padding-top: 10px; margin: 0 30px;">
+                                    <strong>Signature du Locataire</strong><br/>
+                                    Date: ____/____/________
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

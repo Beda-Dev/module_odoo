@@ -1,0 +1,94 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Catégorie du module -->
+        <record id="module_category_location" model="ir.module.category">
+            <field name="name">Location de Véhicules</field>
+            <field name="description">Gestion des locations de véhicules</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <!-- Groupe Utilisateur -->
+        <record id="group_location_user" model="res.groups">
+            <field name="name">Utilisateur</field>
+            <field name="category_id" ref="module_category_location"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Groupe Manager -->
+        <record id="group_location_manager" model="res.groups">
+            <field name="name">Manager</field>
+            <field name="category_id" ref="module_category_location"/>
+            <field name="implied_ids" eval="[(4, ref('group_location_user'))]"/>
+            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+        </record>
+
+        <!-- Règles d'enregistrement pour Utilisateur -->
+        <record id="location_location_user_rule" model="ir.rule">
+            <field name="name">Location: Utilisateur peut voir toutes les locations</field>
+            <field name="model_id" ref="model_location_location"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_location_user'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="1"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="0"/>
+        </record>
+
+        <!-- Règles d'enregistrement pour Manager -->
+        <record id="location_location_manager_rule" model="ir.rule">
+            <field name="name">Location: Manager peut tout faire</field>
+            <field name="model_id" ref="model_location_location"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_location_manager'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="1"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="1"/>
+        </record>
+
+        <record id="location_vehicule_user_rule" model="ir.rule">
+            <field name="name">Véhicule: Utilisateur peut voir tous les véhicules</field>
+            <field name="model_id" ref="model_location_vehicule"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_location_user'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="1"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="0"/>
+        </record>
+
+        <record id="location_vehicule_manager_rule" model="ir.rule">
+            <field name="name">Véhicule: Manager peut tout faire</field>
+            <field name="model_id" ref="model_location_vehicule"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_location_manager'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="1"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="1"/>
+        </record>
+
+        <!-- Règles d'enregistrement pour Marque -->
+        <record id="location_marque_user_rule" model="ir.rule">
+            <field name="name">Marque: Utilisateur peut lire toutes les marques</field>
+            <field name="model_id" ref="model_location_marque"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_location_user'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="0"/>
+            <field name="perm_create" eval="0"/>
+            <field name="perm_unlink" eval="0"/>
+        </record>
+
+        <record id="location_marque_manager_rule" model="ir.rule">
+            <field name="name">Marque: Manager peut tout faire</field>
+            <field name="model_id" ref="model_location_marque"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_location_manager'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="1"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="1"/>
+        </record>
+    </data>
+</odoo>

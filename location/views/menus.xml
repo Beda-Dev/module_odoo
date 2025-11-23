@@ -1,0 +1,139 @@
+<odoo>
+    <!-- Actions -->
+    <record id="action_vehicules" model="ir.actions.act_window">
+        <field name="name">Véhicules</field>
+        <field name="res_model">location.vehicule</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_disponible': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer votre premier véhicule
+            </p>
+            <p>
+                Ajoutez les véhicules disponibles à la location avec leurs photos
+                et caractéristiques techniques.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_locations" model="ir.actions.act_window">
+        <field name="name">Locations</field>
+        <field name="res_model">location.location</field>
+        <field name="view_mode">kanban,list,form,calendar,pivot,graph</field>
+        <field name="context">{'search_default_ce_mois': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer votre première location
+            </p>
+            <p>
+                Enregistrez les contrats de location de véhicules et générez
+                automatiquement les factures.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_locations_en_cours" model="ir.actions.act_window">
+        <field name="name">Locations en cours</field>
+        <field name="res_model">location.location</field>
+        <field name="view_mode">kanban, list, form, calendar</field>
+        <field name="domain">[('statut', '=', 'en_cours')]</field>
+        <field name="context">{'default_statut': 'en_cours'}</field>
+    </record>
+
+    <record id="action_locations_a_facturer" model="ir.actions.act_window">
+        <field name="name">À facturer</field>
+        <field name="res_model">location.location</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('statut', '=', 'terminee'), ('invoice_id', '=', False)]</field>
+        <field name="context">{'search_default_sans_facture': 1}</field>
+    </record>
+
+    <record id="action_vehicules_disponibles" model="ir.actions.act_window">
+        <field name="name">Véhicules disponibles</field>
+        <field name="res_model">location.vehicule</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('statut', '=', 'disponible')]</field>
+        <field name="context">{'default_statut': 'disponible'}</field>
+    </record>
+
+    <record id="action_vehicules_maintenance" model="ir.actions.act_window">
+        <field name="name">En maintenance</field>
+        <field name="res_model">location.vehicule</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('statut', '=', 'maintenance')]</field>
+        <field name="context">{'default_statut': 'maintenance'}</field>
+    </record>
+
+    <!-- Menu principal -->
+    <menuitem id="menu_location_root" 
+              name="Location Véhicules" 
+              web_icon="location,static/description/icon.png"
+              sequence="10" />
+
+    <!-- Sous-menus -->
+    <menuitem id="menu_location_operations"
+              name="Opérations"
+              parent="menu_location_root"
+              sequence="10" />
+
+    <menuitem id="menu_locations"
+              name="Toutes les locations"
+              parent="menu_location_operations"
+              action="action_locations"
+              sequence="10" />
+
+    <menuitem id="menu_locations_en_cours"
+              name="En cours"
+              parent="menu_location_operations"
+              action="action_locations_en_cours"
+              sequence="20" />
+
+    <menuitem id="menu_locations_a_facturer"
+              name="À facturer"
+              parent="menu_location_operations"
+              action="action_locations_a_facturer"
+              sequence="30" />
+
+    <!-- Menu Véhicules -->
+    <menuitem id="menu_location_vehicules"
+              name="Véhicules"
+              parent="menu_location_root"
+              sequence="20" />
+
+    <menuitem id="menu_vehicules"
+              name="Tous les véhicules"
+              parent="menu_location_vehicules"
+              action="action_vehicules"
+              sequence="10" />
+
+    <menuitem id="menu_vehicules_disponibles"
+              name="Disponibles"
+              parent="menu_location_vehicules"
+              action="action_vehicules_disponibles"
+              sequence="20" />
+
+    <menuitem id="menu_vehicules_maintenance"
+              name="En maintenance"
+              parent="menu_location_vehicules"
+              action="action_vehicules_maintenance"
+              sequence="30" />
+
+    <!-- Menu Rapports -->
+    <menuitem id="menu_location_reporting"
+              name="Rapports"
+              parent="menu_location_root"
+              sequence="30" />
+
+    <menuitem id="menu_location_reporting_pivot"
+              name="Analyse des locations"
+              parent="menu_location_reporting"
+              action="action_locations"
+              sequence="10" />
+
+    <!-- Menu Configuration -->
+    <menuitem id="menu_location_configuration"
+              name="Configuration"
+              parent="menu_location_root"
+              sequence="100"
+              groups="location.group_location_manager" />
+</odoo>

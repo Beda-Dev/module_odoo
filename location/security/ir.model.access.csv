@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_location_marque_user,location.marque.user,model_location_marque,location.group_location_user,1,0,0,0
+access_location_marque_manager,location.marque.manager,model_location_marque,location.group_location_manager,1,1,1,1
+access_location_marque_public,location.marque.public,model_location_marque,,1,0,0,0
+access_location_vehicule_user,location.vehicule.user,model_location_vehicule,location.group_location_user,1,1,1,0
+access_location_vehicule_manager,location.vehicule.manager,model_location_vehicule,location.group_location_manager,1,1,1,1
+access_location_location_user,location.location.user,model_location_location,location.group_location_user,1,1,1,0
+access_location_location_manager,location.location.manager,model_location_location,location.group_location_manager,1,1,1,1
+access_location_vehicule_public,location.vehicule.public,model_location_vehicule,,1,0,0,0
+access_location_location_public,location.location.public,model_location_location,,1,0,0,0
