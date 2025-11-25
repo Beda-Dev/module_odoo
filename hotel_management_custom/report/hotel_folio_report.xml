@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Rapport Folio -->
+    <record id="action_report_folio" model="ir.actions.report">
+        <field name="name">Folio Client</field>
+        <field name="model">hotel.folio</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management_custom.report_folio_document</field>
+        <field name="report_file">hotel_management_custom.report_folio_document</field>
+        <field name="binding_model_id" ref="model_hotel_folio"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_folio_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Folio Client</h2>
+                        <div class="row mt32 mb32">
+                            <div class="col-6">
+                                <strong>Folio:</strong> <span t-field="o.name"/><br/>
+                                <strong>Client:</strong> <span t-field="o.partner_id"/><br/>
+                                <strong>Téléphone:</strong> <span t-field="o.partner_phone"/><br/>
+                                <strong>Email:</strong> <span t-field="o.partner_email"/><br/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Réservation:</strong> <span t-field="o.reservation_id"/><br/>
+                                <strong>Chambre:</strong> <span t-field="o.room_id"/><br/>
+                                <strong>Arrivée:</strong> <span t-field="o.checkin_date"/><br/>
+                                <strong>Départ:</strong> <span t-field="o.checkout_date"/><br/>
+                            </div>
+                        </div>
+                        
+                        <h3>Détail des Services</h3>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Service</th>
+                                    <th class="text-end">Quantité</th>
+                                    <th class="text-end">Prix Unitaire</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.service_line_ids" t-as="line">
+                                    <td><span t-field="line.date"/></td>
+                                    <td><span t-field="line.service_id"/></td>
+                                    <td class="text-end"><span t-field="line.quantity"/></td>
+                                    <td class="text-end"><span t-field="line.price_unit" 
+                                        t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                    <td class="text-end"><span t-field="line.price_subtotal" 
+                                        t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div class="row">
+                            <div class="col-6 offset-6">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Total Chambres:</strong></td>
+                                        <td class="text-end">
+                                            <span t-field="o.room_total" 
+                                                t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Total Services:</strong></td>
+                                        <td class="text-end">
+                                            <span t-field="o.service_total" 
+                                                t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-top">
+                                        <td><strong>Montant Total:</strong></td>
+                                        <td class="text-end">
+                                            <strong><span t-field="o.amount_total" 
+                                                t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></strong>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Montant Payé:</strong></td>
+                                        <td class="text-end">
+                                            <span t-field="o.amount_paid" 
+                                                t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-top">
+                                        <td><strong>Solde Dû:</strong></td>
+                                        <td class="text-end">
+                                            <strong><span t-field="o.amount_due" 
+                                                t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></strong>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

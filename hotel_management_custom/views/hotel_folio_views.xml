@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Vue Liste Folios -->
+    <record id="view_hotel_folio_list" model="ir.ui.view">
+        <field name="name">hotel.folio.list</field>
+        <field name="model">hotel.folio</field>
+        <field name="arch" type="xml">
+            <list string="Notes de séjour client" decoration-bf="state == 'open'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <field name="checkin_date"/>
+                <field name="checkout_date"/>
+                <field name="amount_total" widget="monetary" sum="Total"/>
+                <field name="amount_paid" widget="monetary" sum="Payé"/>
+                <field name="amount_due" widget="monetary" sum="Dû"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue Formulaire Folios -->
+    <record id="view_hotel_folio_form" model="ir.ui.view">
+        <field name="name">hotel.folio.form</field>
+        <field name="model">hotel.folio</field>
+        <field name="arch" type="xml">
+            <form string="Notes de séjour client">
+                <header>
+                    <button name="action_create_invoice" string="Créer Facture" type="object"
+                            class="btn-primary" invisible="state != 'open'"/>
+                    <button name="action_close_folio" string="Fermer Notes de séjour client" type="object"
+                            class="btn-success" invisible="state != 'open'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_invoices" type="object"
+                                class="oe_stat_button" icon="fa-file-text"
+                                invisible="not invoice_count">
+                            <field name="invoice_count" widget="statinfo" string="Factures"/>
+                        </button>
+                        <button name="action_add_service" type="object"
+                                class="oe_stat_button" icon="fa-plus"
+                                invisible="state != 'open'">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Ajouter Service</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="partner_phone" readonly="1"/>
+                            <field name="partner_email" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="reservation_id" readonly="1"/>
+                            <field name="room_id" readonly="1"/>
+                            <field name="checkin_date" readonly="1"/>
+                            <field name="checkout_date" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Montants">
+                            <field name="room_total" widget="monetary" readonly="1"/>
+                            <field name="service_total" widget="monetary" readonly="1"/>
+                            <field name="amount_total" widget="monetary" readonly="1" class="oe_subtotal_footer_separator"/>
+                            <field name="amount_paid" widget="monetary" readonly="1"/>
+                            <field name="amount_due" widget="monetary" readonly="1" class="oe_subtotal_footer_separator"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Services" name="services">
+                            <field name="service_line_ids" readonly="1">
+                                <list>
+                                    <field name="service_id"/>
+                                    <field name="date"/>
+                                    <field name="quantity"/>
+                                    <field name="price_unit" widget="monetary"/>
+                                    <field name="price_subtotal" widget="monetary" sum="Total"/>
+                                    <field name="notes"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Paiements" name="payments">
+                            <field name="payment_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="hotel_payment_method_id"/>
+                                    <field name="amount" widget="monetary" sum="Total"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes" placeholder="Notes..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vue Recherche Folios -->
+    <record id="view_hotel_folio_search" model="ir.ui.view">
+        <field name="name">hotel.folio.search</field>
+        <field name="model">hotel.folio</field>
+        <field name="arch" type="xml">
+            <search string="Notes de séjour client">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <separator/>
+                <filter string="Ouvert" name="open" domain="[('state', '=', 'open')]"/>
+                <filter string="Fermé" name="closed" domain="[('state', '=', 'closed')]"/>
+                <separator/>
+                <filter string="Solde Dû" name="has_due" domain="[('amount_due', '&gt;', 0)]"/>
+                <group expand="0" string="Grouper Par">
+                    <filter string="Client" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Chambre" name="group_room" context="{'group_by': 'room_id'}"/>
+                    <filter string="État" name="group_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action Folios -->
+    <record id="action_hotel_folio" model="ir.actions.act_window">
+        <field name="name">Folios</field>
+        <field name="res_model">hotel.folio</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucun folio
+            </p>
+            <p>
+                Les Notes de séjour client sont créés automatiquement lors de la confirmation d'une réservation.
+            </p>
+        </field>
+    </record>
+
+</odoo>

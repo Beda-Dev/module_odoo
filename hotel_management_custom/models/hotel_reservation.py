@@ -1,0 +1,293 @@
+# -*- coding: utf-8 -*-
+
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError, UserError
+from datetime import timedelta
+
+
+class HotelReservation(models.Model):
+    _name = 'hotel.reservation'
+    _description = 'Réservation d\'Hôtel'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _order = 'checkin_date desc, id desc'
+
+    name = fields.Char(string='Référence', required=True, copy=False, readonly=True,
+                       default=lambda self: _('Nouveau'))
+
+    # Client
+    partner_id = fields.Many2one('res.partner', string='Client', required=True, tracking=True)
+    partner_phone = fields.Char(related='partner_id.phone', string='Téléphone')
+    partner_email = fields.Char(related='partner_id.email', string='Email')
+
+    # Chambre
+    room_id = fields.Many2one('hotel.room', string='Chambre', required=True, tracking=True)
+    room_type_id = fields.Many2one(related='room_id.room_type_id', string='Type de Chambre', store=True)
+
+    # Dates
+    checkin_date = fields.Date(string='Date d\'Arrivée', required=True, tracking=True)
+    checkout_date = fields.Date(string='Date de Départ', required=True, tracking=True)
+    duration_days = fields.Integer(string='Nombre de Nuits', compute='_compute_duration', store=True)
+
+    # Dates effectives
+    actual_checkin_date = fields.Datetime(string='Check-in Effectif', readonly=True)
+    actual_checkout_date = fields.Datetime(string='Check-out Effectif', readonly=True)
+
+    # Personnes
+    adults = fields.Integer(string='Adultes', default=1, required=True)
+    children = fields.Integer(string='Enfants', default=0)
+    total_persons = fields.Integer(string='Total Personnes', compute='_compute_total_persons', store=True)
+
+    # Tarifs
+    total_amount = fields.Float(string='Montant Total', compute='_compute_total_amount',
+                                store=True, tracking=True)
+    amount_paid = fields.Float(string='Montant Payé', compute='_compute_amount_paid', store=True)
+    amount_due = fields.Float(string='Montant Dû', compute='_compute_amount_due', store=True)
+
+    # Mode de paiement
+    hotel_payment_method_id = fields.Many2one('hotel.payment.method', string='Mode de Paiement')
+
+    # Relations
+    folio_id = fields.Many2one('hotel.folio', string='Notes de séjour client', readonly=True)
+    service_line_ids = fields.One2many('hotel.service.line', 'reservation_id',
+                                       string='Services Consommés')
+    invoice_ids = fields.Many2many('account.move', string='Factures', readonly=True)
+
+    # État
+    state = fields.Selection([
+        ('draft', 'Brouillon'),
+        ('confirmed', 'Confirmée'),
+        ('checkin', 'Check-in'),
+        ('checkout', 'Check-out'),
+        ('cancelled', 'Annulée'),
+    ], string='État', default='draft', required=True, tracking=True)
+
+    # Informations supplémentaires
+    notes = fields.Text(string='Notes')
+    special_requests = fields.Text(string='Demandes Spéciales')
+
+    # Canal de réservation
+    booking_channel = fields.Selection([
+        ('direct', 'Direct'),
+        ('phone', 'Téléphone'),
+        ('email', 'Email'),
+        ('online', 'En Ligne'),
+        #('walk_in', 'Walk-in'),
+    ], string='Canal de Réservation', default='direct')
+
+    # Statut de paiement
+    payment_status = fields.Selection([
+        ('unpaid', 'Non Payé'),
+        ('partial', 'Partiellement Payé'),
+        ('paid', 'Payé'),
+    ], string='Statut Paiement', compute='_compute_payment_status', store=True)
+
+    company_id = fields.Many2one('res.company', string='Société',
+                                 default=lambda self: self.env.company)
+    currency_id = fields.Many2one(related='company_id.currency_id', string='Devise')
+
+    color = fields.Integer(string='Couleur')
+
+    _sql_constraints = [
+        ('check_dates', 'CHECK(checkout_date > checkin_date)',
+         'La date de départ doit être postérieure à la date d\'arrivée.'),
+        ('check_adults', 'CHECK(adults > 0)',
+         'Il doit y avoir au moins un adulte.'),
+    ]
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('name', _('Nouveau')) == _('Nouveau'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('hotel.reservation') or _('Nouveau')
+        return super(HotelReservation, self).create(vals_list)
+
+    @api.depends('checkin_date', 'checkout_date')
+    def _compute_duration(self):
+        for reservation in self:
+            if reservation.checkin_date and reservation.checkout_date:
+                delta = reservation.checkout_date - reservation.checkin_date
+                reservation.duration_days = delta.days
+            else:
+                reservation.duration_days = 0
+
+    @api.depends('adults', 'children')
+    def _compute_total_persons(self):
+        for reservation in self:
+            reservation.total_persons = reservation.adults + reservation.children
+
+    @api.depends('room_id', 'checkin_date', 'checkout_date', 'service_line_ids.price_subtotal')
+    def _compute_total_amount(self):
+        for reservation in self:
+            total = 0.0
+
+            # Calculer le montant des nuitées
+            if reservation.room_id and reservation.checkin_date and reservation.checkout_date:
+                current_date = reservation.checkin_date
+                while current_date < reservation.checkout_date:
+                    total += reservation.room_id.get_rate_for_date(current_date)
+                    current_date += timedelta(days=1)
+
+            # Ajouter les services
+            total += sum(reservation.service_line_ids.mapped('price_subtotal'))
+
+            reservation.total_amount = total
+
+    @api.depends('folio_id.payment_ids.amount')
+    def _compute_amount_paid(self):
+        for reservation in self:
+            if reservation.folio_id:
+                reservation.amount_paid = sum(reservation.folio_id.payment_ids.mapped('amount'))
+            else:
+                reservation.amount_paid = 0.0
+
+    @api.depends('total_amount', 'amount_paid')
+    def _compute_amount_due(self):
+        for reservation in self:
+            reservation.amount_due = reservation.total_amount - reservation.amount_paid
+
+    @api.depends('amount_paid', 'total_amount')
+    def _compute_payment_status(self):
+        for reservation in self:
+            if reservation.amount_paid >= reservation.total_amount:
+                reservation.payment_status = 'paid'
+            elif reservation.amount_paid > 0:
+                reservation.payment_status = 'partial'
+            else:
+                reservation.payment_status = 'unpaid'
+
+    @api.constrains('room_id', 'checkin_date', 'checkout_date')
+    def _check_room_availability(self):
+        for reservation in self:
+            if reservation.state not in ['cancelled'] and reservation.room_id:
+                # Vérifier les chevauchements avec d'autres réservations
+                overlapping = self.search([
+                    ('id', '!=', reservation.id),
+                    ('room_id', '=', reservation.room_id.id),
+                    ('state', 'in', ['draft', 'confirmed', 'checkin']),
+                    '|',
+                    '&', ('checkin_date', '<=', reservation.checkin_date),
+                    ('checkout_date', '>', reservation.checkin_date),
+                    '&', ('checkin_date', '<', reservation.checkout_date),
+                    ('checkout_date', '>=', reservation.checkout_date),
+                ])
+
+                if overlapping:
+                    raise ValidationError(_(
+                        'La chambre %s n\'est pas disponible pour ces dates.\n'
+                        'Réservation en conflit: %s'
+                    ) % (reservation.room_id.name, overlapping[0].name))
+
+    @api.constrains('total_persons', 'room_id')
+    def _check_capacity(self):
+        for reservation in self:
+            if reservation.room_id and reservation.total_persons > reservation.room_id.capacity:
+                raise ValidationError(_(
+                    'Le nombre de personnes (%d) dépasse la capacité de la chambre (%d).'
+                ) % (reservation.total_persons, reservation.room_id.capacity))
+
+    def action_confirm(self):
+        """Confirmer la réservation"""
+        for reservation in self:
+            if reservation.state != 'draft':
+                raise UserError(_('Seules les réservations en brouillon peuvent être confirmées.'))
+
+            reservation.write({
+                'state': 'confirmed',
+            })
+            reservation.room_id.write({'status': 'reserved'})
+
+            # Créer le folio
+            folio = self.env['hotel.folio'].create({
+                'partner_id': reservation.partner_id.id,
+                'reservation_id': reservation.id,
+            })
+            reservation.folio_id = folio
+
+            reservation.message_post(body=_('Réservation confirmée'))
+
+        return True
+
+    def action_checkin(self):
+        """Effectuer le check-in"""
+        return {
+            'name': _('Check-in'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.checkin.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_reservation_id': self.id},
+        }
+
+    def action_checkout(self):
+        """Effectuer le check-out"""
+        return {
+            'name': _('Check-out'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.checkout.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_reservation_id': self.id},
+        }
+
+    def action_cancel(self):
+        """Annuler la réservation"""
+        for reservation in self:
+            if reservation.state == 'checkout':
+                raise UserError(_('Impossible d\'annuler une réservation après le check-out.'))
+
+            reservation.write({'state': 'cancelled'})
+
+            if reservation.room_id.status == 'reserved' and reservation.room_id.current_reservation_id == reservation:
+                reservation.room_id.write({'status': 'available'})
+
+            reservation.message_post(body=_('Réservation annulée'))
+
+        return True
+
+    def action_view_folio(self):
+        """Voir le folio"""
+        self.ensure_one()
+        return {
+            'name': _('Folio'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.folio',
+            'view_mode': 'form',
+            'res_id': self.folio_id.id,
+        }
+
+    def _cron_checkout_reminder(self):
+        """Tâche planifiée: Rappels de check-out"""
+        today = fields.Date.today()
+        tomorrow = today + timedelta(days=1)
+
+        # Trouver les réservations avec check-out demain
+        upcoming_checkouts = self.search([
+            ('state', '=', 'checkin'),
+            ('checkout_date', '=', tomorrow),
+        ])
+
+        for reservation in upcoming_checkouts:
+            # Créer une activité de rappel
+            reservation.activity_schedule(
+                'mail.mail_activity_data_todo',
+                user_id=reservation.create_uid.id,
+                summary=_('Rappel: Check-out demain'),
+                note=_('La réservation %s (%s) a un check-out prévu pour demain (%s).') % (
+                    reservation.name,
+                    reservation.partner_id.name,
+                    reservation.checkout_date
+                ),
+            )
+
+        # Trouver les réservations avec check-out aujourd'hui
+        today_checkouts = self.search([
+            ('state', '=', 'checkin'),
+            ('checkout_date', '=', today),
+        ])
+
+        for reservation in today_checkouts:
+            # Envoyer une notification
+            reservation.message_post(
+                body=_('Rappel: Check-out prévu aujourd\'hui pour %s') % reservation.partner_id.name,
+                message_type='notification',
+            )

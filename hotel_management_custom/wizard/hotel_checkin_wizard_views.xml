@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue Formulaire Wizard Check-in -->
+    <record id="view_hotel_checkin_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.checkin.wizard.form</field>
+        <field name="model">hotel.checkin.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Check-in">
+                <sheet>
+                    <group>
+                        <group string="Réservation">
+                            <field name="reservation_id" readonly="1"/>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="room_id" readonly="1"/>
+                        </group>
+                        <group string="Date et Heure">
+                            <field name="checkin_datetime"/>
+                        </group>
+                    </group>
+                    
+                    <group>
+                        <group string="Vérifications">
+                            <field name="identity_verified"/>
+                            <field name="payment_verified"/>
+                        </group>
+                        <group string="Personnes">
+                            <field name="actual_adults"/>
+                            <field name="actual_children"/>
+                        </group>
+                    </group>
+                    
+                    <group string="Documents">
+                        <field name="id_card_number" placeholder="Numéro de pièce d'identité"/>
+                        <field name="vehicle_plate" placeholder="Plaque d'immatriculation"/>
+                    </group>
+                    
+                    <group string="Notes">
+                        <field name="notes" placeholder="Notes du check-in..." nolabel="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_checkin" string="Confirmer Check-in" 
+                            type="object" class="btn-primary"/>
+                    <button name="action_print_checkin" string="Imprimer" 
+                            type="object" class="btn-secondary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue Liste Types de Chambres -->
+    <record id="view_hotel_room_type_list" model="ir.ui.view">
+        <field name="name">hotel.room.type.list</field>
+        <field name="model">hotel.room.type</field>
+        <field name="arch" type="xml">
+            <list string="Types de Chambres">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="capacity"/>
+                <field name="weekday_rate" widget="monetary"/>
+                <field name="weekend_rate" widget="monetary"/>
+                <field name="room_count"/>
+                <field name="available_room_count"/>
+                <field name="active" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue Formulaire Types de Chambres -->
+    <record id="view_hotel_room_type_form" model="ir.ui.view">
+        <field name="name">hotel.room.type.form</field>
+        <field name="model">hotel.room.type</field>
+        <field name="arch" type="xml">
+            <form string="Type de Chambre">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivé" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(action_hotel_room_all)d" 
+                                type="action" 
+                                class="oe_stat_button" 
+                                icon="fa-bed"
+                                context="{'default_room_type_id': id}">
+                            <field name="room_count" widget="statinfo" string="Chambres"/>
+                        </button>
+                        <button name="%(action_hotel_room_all)d"
+                                type="action"
+                                class="oe_stat_button"
+                                icon="fa-check-circle"
+                                context="{'default_room_type_id': id, 'search_default_available': 1}">
+                            <field name="available_room_count" widget="statinfo" string="Disponibles"/>
+                        </button>
+                    </div>
+
+                    <field name="color" widget="color_picker"/>
+
+                    <group>
+                        <group>
+                            <field name="name" placeholder="Ex: Chambre Standard"/>
+                            <field name="sequence"/>
+                            <field name="capacity"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group>
+                            <label for="weekday_rate" string="Tarifs"/>
+                            <div>
+                                <field name="weekday_rate" widget="monetary" class="oe_inline"/>
+                                <span class="oe_inline"> (Semaine)</span>
+                            </div>
+                            <div>
+                                <field name="weekend_rate" widget="monetary" class="oe_inline"/>
+                                <span class="oe_inline"> (Week-end)</span>
+                            </div>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="description" placeholder="Description du type de chambre..."/>
+                        </page>
+                        <page string="Équipements" name="amenities">
+                            <field name="amenities" placeholder="Liste des équipements disponibles (WiFi, TV, Climatisation, etc.)"/>
+                        </page>
+                        <page string="Chambres" name="rooms">
+                            <field name="room_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="floor"/>
+                                    <field name="status" widget="badge"
+                                           decoration-success="status == 'available'"
+                                           decoration-info="status == 'reserved'"
+                                           decoration-warning="status in ['cleaning', 'maintenance']"
+                                           decoration-danger="status == 'blocked'"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vue Kanban Types de Chambres -->
+    <record id="view_hotel_room_type_kanban" model="ir.ui.view">
+        <field name="name">hotel.room.type.kanban</field>
+        <field name="model">hotel.room.type</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="color"/>
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="oe_kanban_color_#{kanban_color(record.color.raw_value)}">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title"><field name="name"/></strong>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <field name="capacity" widget="integer"/> personnes
+                                <br/>
+                                Semaine: <field name="weekday_rate" widget="monetary"/>
+                                <br/>
+                                Week-end: <field name="weekend_rate" widget="monetary"/>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left">
+                                    <span class="badge text-bg-info">
+                                        <i class="fa fa-bed"/> <field name="room_count"/> chambres
+                                    </span>
+                                    <span class="badge text-bg-success">
+                                        <i class="fa fa-check"/> <field name="available_room_count"/> disponibles
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Vue Recherche Types de Chambres -->
+    <record id="view_hotel_room_type_search" model="ir.ui.view">
+        <field name="name">hotel.room.type.search</field>
+        <field name="model">hotel.room.type</field>
+        <field name="arch" type="xml">
+            <search string="Types de Chambres">
+                <field name="name"/>
+                <field name="capacity"/>
+                <separator/>
+                <filter string="Actifs" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archivés" name="inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Grouper Par">
+                    <filter string="Capacité" name="group_capacity" context="{'group_by': 'capacity'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action Types de Chambres -->
+    <record id="action_hotel_room_type" model="ir.actions.act_window">
+        <field name="name">Types de Chambres</field>
+        <field name="res_model">hotel.room.type</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer un nouveau type de chambre
+            </p>
+            <p>
+                Définissez les types de chambres disponibles dans votre hôtel avec leurs tarifs et équipements.
+            </p>
+        </field>
+    </record>
+
+</odoo>

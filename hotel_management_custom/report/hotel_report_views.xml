@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Rapport d'Occupation -->
+    <record id="view_hotel_occupation_report" model="ir.ui.view">
+        <field name="name">hotel.occupation.report</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <graph string="Taux d'Occupation" type="line">
+                <field name="checkin_date" interval="day"/>
+                <field name="room_id" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Rapport de Revenus -->
+    <record id="view_hotel_revenue_report" model="ir.ui.view">
+        <field name="name">hotel.revenue.report</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <graph string="Revenus" type="bar">
+                <field name="checkin_date" interval="month"/>
+                <field name="total_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Rapport Services -->
+    <record id="view_hotel_service_report" model="ir.ui.view">
+        <field name="name">hotel.service.report</field>
+        <field name="model">hotel.service.line</field>
+        <field name="arch" type="xml">
+            <graph string="Services Consommés" type="pie">
+                <field name="service_id"/>
+                <field name="price_subtotal" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Action Rapport Occupation -->
+    <record id="action_hotel_occupation_report" model="ir.actions.act_window">
+        <field name="name">Taux d'Occupation</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">graph,pivot</field>
+        <field name="domain">[('state', 'in', ['confirmed', 'checkin', 'checkout'])]</field>
+        <field name="context">{}</field>
+    </record>
+
+    <!-- Action Rapport Revenus -->
+    <record id="action_hotel_revenue_report" model="ir.actions.act_window">
+        <field name="name">Revenus</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">graph,pivot</field>
+        <field name="domain">[('state', '!=', 'cancelled')]</field>
+        <field name="context">{}</field>
+    </record>
+
+    <!-- Action Rapport Services -->
+    <record id="action_hotel_service_report" model="ir.actions.act_window">
+        <field name="name">Services Consommés</field>
+        <field name="res_model">hotel.service.line</field>
+        <field name="view_mode">graph,pivot</field>
+        <field name="context">{}</field>
+    </record>
+
+    <menuitem id="menu_hotel_reports"
+          name="Rapports"
+          parent="menu_hotel_root"
+          sequence="90"/>
+
+    <!-- Menus des Rapports -->
+    <menuitem id="menu_hotel_occupation_report"
+              name="Taux d'Occupation"
+              parent="menu_hotel_reports"
+              action="action_hotel_occupation_report"
+              sequence="10"/>
+    
+    <menuitem id="menu_hotel_revenue_report"
+              name="Revenus"
+              parent="menu_hotel_reports"
+              action="action_hotel_revenue_report"
+              sequence="20"/>
+    
+    <menuitem id="menu_hotel_service_report"
+              name="Services Consommés"
+              parent="menu_hotel_reports"
+              action="action_hotel_service_report"
+              sequence="30"/>
+
+</odoo>

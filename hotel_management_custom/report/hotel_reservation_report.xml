@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Rapport Check-in -->
+    <record id="action_report_checkin" model="ir.actions.report">
+        <field name="name">Fiche de Check-in</field>
+        <field name="model">hotel.reservation</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management_custom.report_checkin_document</field>
+        <field name="report_file">hotel_management_custom.report_checkin_document</field>
+        <field name="binding_model_id" ref="model_hotel_reservation"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_checkin_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Fiche de Check-in</h2>
+                        <div class="row mt32 mb32">
+                            <div class="col-6">
+                                <strong>Réservation:</strong> <span t-field="o.name"/><br/>
+                                <strong>Client:</strong> <span t-field="o.partner_id"/><br/>
+                                <strong>Téléphone:</strong> <span t-field="o.partner_phone"/><br/>
+                                <strong>Email:</strong> <span t-field="o.partner_email"/><br/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Chambre:</strong> <span t-field="o.room_id"/><br/>
+                                <strong>Type:</strong> <span t-field="o.room_type_id"/><br/>
+                                <strong>Arrivée:</strong> <span t-field="o.checkin_date"/><br/>
+                                <strong>Départ:</strong> <span t-field="o.checkout_date"/><br/>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <strong>Nombre de personnes:</strong> 
+                                <span t-field="o.adults"/> adulte(s), 
+                                <span t-field="o.children"/> enfant(s)<br/>
+                                <strong>Montant total:</strong> <span t-field="o.total_amount" 
+                                    t-options='{"widget": "monetary", "display_currency": o.currency_id}'/><br/>
+                            </div>
+                        </div>
+                        <div class="row mt32">
+                            <div class="col-12">
+                                <p>Je soussigné(e) <span t-field="o.partner_id"/> certifie avoir pris connaissance du règlement intérieur de l'hôtel et m'engage à le respecter.</p>
+                                <br/><br/>
+                                <p>Signature du client: _____________________</p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

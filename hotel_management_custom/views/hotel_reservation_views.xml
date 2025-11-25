@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Vue Liste Réservations -->
+    <record id="view_hotel_reservation_list" model="ir.ui.view">
+        <field name="name">hotel.reservation.list</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <list string="Réservations"
+                  decoration-success="state == 'confirmed'"
+                  decoration-info="state == 'checkin'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <field name="checkin_date"/>
+                <field name="checkout_date"/>
+                <field name="duration_days"/>
+                <field name="total_amount" widget="monetary" sum="Total"/>
+                <field name="payment_status" widget="badge"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'checkout'"
+                       decoration-info="state == 'checkin'"
+                       decoration-warning="state == 'confirmed'"
+                       decoration-muted="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue Formulaire Réservations -->
+    <record id="view_hotel_reservation_form" model="ir.ui.view">
+        <field name="name">hotel.reservation.form</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <form string="Réservation">
+                <header>
+                    <button name="action_confirm" string="Confirmer" type="object"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_checkin" string="Check-in" type="object"
+                            class="btn-success" invisible="state != 'confirmed'"/>
+                    <button name="action_checkout" string="Check-out" type="object"
+                            class="btn-info" invisible="state != 'checkin'"/>
+                    <button name="action_cancel" string="Annuler" type="object"
+                            class="btn-danger" invisible="state in ['cancelled', 'checkout']"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,checkin,checkout"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_folio" type="object"
+                                class="oe_stat_button" icon="fa-file-text"
+                                invisible="not folio_id">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Folio</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="partner_id" options="{'no_create_edit': True}"/>
+                            <field name="partner_phone" readonly="1"/>
+                            <field name="partner_email" readonly="1"/>
+                            <field name="booking_channel"/>
+                        </group>
+                        <group>
+                            <field name="room_id" domain="[('status', 'in', ['available', 'reserved'])]"
+                                   options="{'no_create': True}"/>
+                            <field name="room_type_id" readonly="1"/>
+                            <field name="hotel_payment_method_id" options="{'no_create': True}"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Dates">
+                            <field name="checkin_date"/>
+                            <field name="checkout_date"/>
+                            <field name="duration_days" readonly="1"/>
+                            <field name="actual_checkin_date" readonly="1"
+                                   invisible="not actual_checkin_date"/>
+                            <field name="actual_checkout_date" readonly="1"
+                                   invisible="not actual_checkout_date"/>
+                        </group>
+                        <group string="Personnes">
+                            <field name="adults"/>
+                            <field name="children"/>
+                            <field name="total_persons" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Montants">
+                            <field name="total_amount" widget="monetary" readonly="1"/>
+                            <field name="amount_paid" widget="monetary" readonly="1"/>
+                            <field name="amount_due" widget="monetary" readonly="1"/>
+                            <field name="payment_status" widget="badge"/>
+                        </group>
+                        <group>
+                            <field name="color" widget="color_picker"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Services" name="services">
+                            <field name="service_line_ids">
+                                <list editable="bottom">
+                                    <field name="service_id"/>
+                                    <field name="date"/>
+                                    <field name="quantity"/>
+                                    <field name="price_unit" widget="monetary"/>
+                                    <field name="price_subtotal" widget="monetary" sum="Total"/>
+                                    <field name="notes"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <group>
+                                <field name="notes" placeholder="Notes générales..."/>
+                                <field name="special_requests" placeholder="Demandes spéciales du client..."/>
+                            </group>
+                        </page>
+                        <page string="Factures" name="invoices" invisible="not invoice_ids">
+                            <field name="invoice_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="invoice_date"/>
+                                    <field name="amount_total" widget="monetary"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vue Calendrier Réservations -->
+    <record id="view_hotel_reservation_calendar" model="ir.ui.view">
+        <field name="name">hotel.reservation.calendar</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <calendar string="Réservations" date_start="checkin_date" date_stop="checkout_date"
+                      color="room_id" mode="month" quick_create="0">
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- Vue Recherche Réservations -->
+    <record id="view_hotel_reservation_search" model="ir.ui.view">
+        <field name="name">hotel.reservation.search</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <search string="Réservations">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <separator/>
+                <filter string="Brouillon" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Confirmées" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter string="Check-in" name="checkin" domain="[('state', '=', 'checkin')]"/>
+                <filter string="Check-out" name="checkout" domain="[('state', '=', 'checkout')]"/>
+                <separator/>
+                <filter string="Aujourd'hui" name="today"
+                        domain="[('checkin_date', '&lt;=', context_today().strftime('%Y-%m-%d')), ('checkout_date', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Cette Semaine" name="this_week"
+                        domain="[('checkin_date', '&gt;=', (context_today() - relativedelta(weeks=0, weekday=0)).strftime('%Y-%m-%d')), ('checkin_date', '&lt;=', (context_today() + relativedelta(weeks=0, weekday=6)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter string="Non Payées" name="unpaid" domain="[('payment_status', '=', 'unpaid')]"/>
+                <filter string="Partiellement Payées" name="partial" domain="[('payment_status', '=', 'partial')]"/>
+                <filter string="Payées" name="paid" domain="[('payment_status', '=', 'paid')]"/>
+                <group expand="0" string="Grouper Par">
+                    <filter string="Client" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Chambre" name="group_room" context="{'group_by': 'room_id'}"/>
+                    <filter string="État" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Date Arrivée" name="group_checkin" context="{'group_by': 'checkin_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action Réservations -->
+    <record id="action_hotel_reservation" model="ir.actions.act_window">
+        <field name="name">Réservations</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">list,form,calendar</field>
+        <field name="context">{'search_default_confirmed': 1, 'search_default_checkin': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer une nouvelle réservation
+            </p>
+            <p>
+                Gérez les réservations de votre hôtel avec calcul automatique des tarifs.
+            </p>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Types de chambres par défaut -->
+        <record id="room_type_standard" model="hotel.room.type">
+            <field name="name">Chambre Standard</field>
+            <field name="sequence">10</field>
+            <field name="capacity">2</field>
+            <field name="weekday_rate">50000</field>
+            <field name="weekend_rate">60000</field>
+            <field name="description">Chambre standard avec lit double</field>
+            <field name="amenities">WiFi, TV, Climatisation</field>
+        </record>
+
+        <record id="room_type_deluxe" model="hotel.room.type">
+            <field name="name">Chambre Deluxe</field>
+            <field name="sequence">20</field>
+            <field name="capacity">2</field>
+            <field name="weekday_rate">75000</field>
+            <field name="weekend_rate">90000</field>
+            <field name="description">Chambre supérieure avec vue</field>
+            <field name="amenities">WiFi, TV HD, Climatisation, Minibar, Balcon</field>
+        </record>
+
+        <record id="room_type_suite" model="hotel.room.type">
+            <field name="name">Suite</field>
+            <field name="sequence">30</field>
+            <field name="capacity">4</field>
+            <field name="weekday_rate">150000</field>
+            <field name="weekend_rate">180000</field>
+            <field name="description">Suite spacieuse avec salon séparé</field>
+            <field name="amenities">WiFi, TV HD, Climatisation, Minibar, Balcon, Salon, Kitchenette</field>
+        </record>
+
+        <!-- Services par défaut -->
+        <record id="service_breakfast" model="hotel.service">
+            <field name="name">Petit-déjeuner</field>
+            <field name="category">restaurant</field>
+            <field name="price">5000</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="service_lunch" model="hotel.service">
+            <field name="name">Déjeuner</field>
+            <field name="category">restaurant</field>
+            <field name="price">10000</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="service_dinner" model="hotel.service">
+            <field name="name">Dîner</field>
+            <field name="category">restaurant</field>
+            <field name="price">15000</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <record id="service_room_service" model="hotel.service">
+            <field name="name">Service en Chambre</field>
+            <field name="category">room_service</field>
+            <field name="price">3000</field>
+            <field name="available_24h">True</field>
+            <field name="sequence">40</field>
+        </record>
+
+        <record id="service_laundry" model="hotel.service">
+            <field name="name">Blanchisserie</field>
+            <field name="category">laundry</field>
+            <field name="price">8000</field>
+            <field name="sequence">50</field>
+        </record>
+
+        <record id="service_parking" model="hotel.service">
+            <field name="name">Parking (par jour)</field>
+            <field name="category">parking</field>
+            <field name="price">2000</field>
+            <field name="sequence">60</field>
+        </record>
+
+        <record id="service_minibar_water" model="hotel.service">
+            <field name="name">Eau Minérale</field>
+            <field name="category">minibar</field>
+            <field name="price">500</field>
+            <field name="sequence">70</field>
+        </record>
+
+        <record id="service_minibar_soda" model="hotel.service">
+            <field name="name">Soda</field>
+            <field name="category">minibar</field>
+            <field name="price">1000</field>
+            <field name="sequence">80</field>
+        </record>
+
+    </data>
+</odoo>

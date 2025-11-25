@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue Formulaire Wizard Check-out -->
+    <record id="view_hotel_checkout_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.checkout.wizard.form</field>
+        <field name="model">hotel.checkout.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Check-out">
+                <sheet>
+                    <group>
+                        <group string="Réservation">
+                            <field name="reservation_id" readonly="1"/>
+                            <field name="folio_id" readonly="1"/>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="room_id" readonly="1"/>
+                        </group>
+                        <group string="Date et Heure">
+                            <field name="checkout_datetime"/>
+                        </group>
+                    </group>
+                    
+                    <group>
+                        <group string="Montants">
+                            <field name="total_amount" widget="monetary" readonly="1"/>
+                            <field name="amount_paid" widget="monetary" readonly="1"/>
+                            <field name="amount_due" widget="monetary" readonly="1" class="oe_subtotal_footer_separator"/>
+                        </group>
+                        <group string="Inspection Chambre">
+                            <field name="room_inspection"/>
+                            <field name="damage_cost" widget="monetary" 
+                                   invisible="room_inspection != 'damage'"/>
+                        </group>
+                    </group>
+                    
+                    <group string="Dommages" invisible="room_inspection != 'damage'">
+                        <field name="damage_description" placeholder="Description des dommages..." nolabel="1"/>
+                    </group>
+                    
+                    <group string="Paiement" invisible="not payment_required">
+                        <group>
+                            <field name="payment_required" invisible="1"/>
+                            <field name="payment_method_id" required="payment_required"/>
+                            <field name="payment_amount" widget="monetary" required="payment_required"/>
+                        </group>
+                        <group>
+                            <field name="mobile_phone" 
+                                   invisible="payment_method_id and payment_method_id.payment_type != 'mobile_money'"
+                                   required="payment_method_id and payment_method_id.require_phone"/>
+                            <field name="mobile_reference" 
+                                   invisible="payment_method_id and payment_method_id.payment_type != 'mobile_money'"
+                                   required="payment_method_id and payment_method_id.require_reference"/>
+                            <field name="check_number" 
+                                   invisible="payment_method_id and payment_method_id.payment_type != 'check'"
+                                   required="payment_method_id and payment_method_id.payment_type == 'check'"/>
+                            <field name="check_date" 
+                                   invisible="payment_method_id and payment_method_id.payment_type != 'check'"/>
+                            <field name="check_bank" 
+                                   invisible="payment_method_id and payment_method_id.payment_type != 'check'"/>
+                        </group>
+                    </group>
+                    
+                    <group>
+                        <group string="Vérifications">
+                            <field name="minibar_check"/>
+                        </group>
+                        <group string="Satisfaction Client">
+                            <field name="satisfaction_rating"/>
+                        </group>
+                    </group>
+                    
+                    <group string="Notes">
+                        <field name="notes" placeholder="Notes du check-out..." nolabel="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_checkout" string="Confirmer Check-out" 
+                            type="object" class="btn-primary"/>
+                    <button name="action_print_folio" string="Imprimer Folio" 
+                            type="object" class="btn-secondary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

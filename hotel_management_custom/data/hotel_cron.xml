@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Cron pour vérifier la disponibilité des chambres -->
+        <record id="ir_cron_check_room_availability" model="ir.cron">
+            <field name="name">Hôtel: Vérifier Disponibilité Chambres</field>
+            <field name="model_id" ref="model_hotel_room"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_check_availability()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Cron pour les alertes de stock -->
+        <record id="ir_cron_stock_alert" model="ir.cron">
+            <field name="name">Hôtel: Alertes Stock</field>
+            <field name="model_id" ref="stock.model_stock_quant"/>
+            <field name="state">code</field>
+            <field name="code">env['hotel.room']._cron_stock_alert()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Cron pour rappels de check-out -->
+        <record id="ir_cron_checkout_reminder" model="ir.cron">
+            <field name="name">Hôtel: Rappels Check-out</field>
+            <field name="model_id" ref="model_hotel_reservation"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_checkout_reminder()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

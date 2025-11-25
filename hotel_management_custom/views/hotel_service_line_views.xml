@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue Liste Lignes de Services -->
+    <record id="view_hotel_service_line_list" model="ir.ui.view">
+        <field name="name">hotel.service.line.list</field>
+        <field name="model">hotel.service.line</field>
+        <field name="arch" type="xml">
+            <list string="Services Consommés">
+                <field name="date"/>
+                <field name="folio_id"/>
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <field name="service_id"/>
+                <field name="quantity"/>
+                <field name="price_unit" widget="monetary"/>
+                <field name="price_subtotal" widget="monetary" sum="Total"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue Formulaire Lignes de Services -->
+    <record id="view_hotel_service_line_form" model="ir.ui.view">
+        <field name="name">hotel.service.line.form</field>
+        <field name="model">hotel.service.line</field>
+        <field name="arch" type="xml">
+            <form string="Service Consommé">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="folio_id" readonly="1"/>
+                            <field name="reservation_id" readonly="1"/>
+                            <field name="service_id"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                            <field name="quantity"/>
+                            <field name="price_unit" widget="monetary"/>
+                            <field name="price_subtotal" widget="monetary" readonly="1"/>
+                        </group>
+                    </group>
+                    
+                    <group>
+                        <field name="notes" placeholder="Notes..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vue Recherche Lignes de Services -->
+    <record id="view_hotel_service_line_search" model="ir.ui.view">
+        <field name="name">hotel.service.line.search</field>
+        <field name="model">hotel.service.line</field>
+        <field name="arch" type="xml">
+            <search string="Services Consommés">
+                <field name="folio_id"/>
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <field name="service_id"/>
+                <separator/>
+                <filter string="Aujourd'hui" name="today" 
+                        domain="[('date', '&gt;=', datetime.datetime.now().replace(hour=0, minute=0, second=0)), ('date', '&lt;=', datetime.datetime.now().replace(hour=23, minute=59, second=59))]"/>
+                <filter string="Cette Semaine" name="this_week" 
+                        domain="[('date', '&gt;=', (context_today() - relativedelta(weeks=0, weekday=0)).strftime('%Y-%m-%d 00:00:00')), ('date', '&lt;=', (context_today() + relativedelta(weeks=0, weekday=6)).strftime('%Y-%m-%d 23:59:59'))]"/>
+                <group expand="0" string="Grouper Par">
+                    <filter string="Notes de séjour client" name="group_folio" context="{'group_by': 'folio_id'}"/>
+                    <filter string="Client" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Service" name="group_service" context="{'group_by': 'service_id'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action Lignes de Services -->
+    <record id="action_hotel_service_line" model="ir.actions.act_window">
+        <field name="name">Services Consommés</field>
+        <field name="res_model">hotel.service.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucun service consommé
+            </p>
+            <p>
+                Les services consommés apparaîtront ici.
+            </p>
+        </field>
+    </record>
+
+</odoo>

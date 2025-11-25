@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Menu Principal Hôtel -->
+    <menuitem id="menu_hotel_root"
+              name="Hôtel"
+              sequence="10"
+              web_icon="hotel_management_custom,static/description/hotel.png"/>
+    
+    <!-- Menu Opérations -->
+    <menuitem id="menu_hotel_operations"
+              name="Opérations"
+              parent="menu_hotel_root"
+              sequence="10"/>
+    
+    <menuitem id="menu_hotel_reservation"
+              name="Réservations"
+              parent="menu_hotel_operations"
+              action="action_hotel_reservation"
+              sequence="10"/>
+    
+    <menuitem id="menu_hotel_folio"
+              name="Notes de séjour client"
+              parent="menu_hotel_operations"
+              action="action_hotel_folio"
+              sequence="20"/>
+    
+    <menuitem id="menu_hotel_room_all"
+              name="Chambres"
+              parent="menu_hotel_operations"
+              action="action_hotel_room_all"
+              sequence="30"/>
+    
+    <!-- Menu Nettoyage -->
+    <menuitem id="menu_hotel_housekeeping_root"
+              name="Nettoyage"
+              parent="menu_hotel_root"
+              sequence="20"/>
+    
+    <menuitem id="menu_hotel_housekeeping"
+              name="Tâches de Nettoyage"
+              parent="menu_hotel_housekeeping_root"
+              action="action_hotel_housekeeping"
+              sequence="10"/>
+    
+    <!-- Menu Comptabilité -->
+    <menuitem id="menu_hotel_accounting"
+              name="Comptabilité"
+              parent="menu_hotel_root"
+              sequence="30"/>
+    
+    <menuitem id="menu_hotel_payment"
+              name="Paiements"
+              parent="menu_hotel_accounting"
+              action="action_hotel_payment"
+              sequence="10"/>
+    
+    <menuitem id="menu_hotel_service_line"
+              name="Services Consommés"
+              parent="menu_hotel_accounting"
+              action="action_hotel_service_line"
+              sequence="20"/>
+    
+    <!-- Menu Configuration -->
+    <menuitem id="menu_hotel_configuration"
+              name="Configuration"
+              parent="menu_hotel_root"
+              sequence="90"/>
+    
+    <menuitem id="menu_hotel_room_type"
+              name="Types de Chambres"
+              parent="menu_hotel_configuration"
+              action="action_hotel_room_type"
+              sequence="10"/>
+    
+    <menuitem id="menu_hotel_service"
+              name="Services"
+              parent="menu_hotel_configuration"
+              action="action_hotel_service"
+              sequence="20"/>
+    
+    <menuitem id="menu_hotel_payment_method"
+              name="Modes de Paiement"
+              parent="menu_hotel_configuration"
+              action="action_hotel_payment_method"
+              sequence="30"/>
+    
+    <!-- Menu Rapports -->
+    <menuitem id="menu_hotel_reports"
+              name="Rapports"
+              parent="menu_hotel_root"
+              sequence="80"/>
+
+</odoo>

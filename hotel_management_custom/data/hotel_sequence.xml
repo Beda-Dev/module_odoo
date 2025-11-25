@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Séquence pour les réservations -->
+        <record id="seq_hotel_reservation" model="ir.sequence">
+            <field name="name">Réservation Hôtel</field>
+            <field name="code">hotel.reservation</field>
+            <field name="prefix">RES</field>
+            <field name="padding">5</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+
+        <!-- Séquence pour les folios -->
+        <record id="seq_hotel_folio" model="ir.sequence">
+            <field name="name">Folio Hôtel</field>
+            <field name="code">hotel.folio</field>
+            <field name="prefix">FOL</field>
+            <field name="padding">5</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+
+        <!-- Séquence pour le nettoyage -->
+        <record id="seq_hotel_housekeeping" model="ir.sequence">
+            <field name="name">Nettoyage Hôtel</field>
+            <field name="code">hotel.housekeeping</field>
+            <field name="prefix">CLN</field>
+            <field name="padding">5</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+
+    </data>
+</odoo>

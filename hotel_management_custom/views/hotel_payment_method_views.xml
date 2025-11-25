@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Vue Liste Modes de Paiement -->
+    <record id="view_hotel_payment_method_list" model="ir.ui.view">
+        <field name="name">hotel.payment.method.list</field>
+        <field name="model">hotel.payment.method</field>
+        <field name="arch" type="xml">
+            <list string="Modes de Paiement">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="payment_type" widget="badge"/>
+                <field name="mobile_provider" widget="badge" optional="hide"/>
+                <field name="journal_id"/>
+                <field name="usage_count"/>
+                <field name="active" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue Liste Paiements Hôtel - STANDALONE (sans héritage) -->
+    <record id="view_hotel_payment_list" model="ir.ui.view">
+        <field name="name">hotel.account.payment.list</field>
+        <field name="model">account.payment</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <list string="Paiements Hôtel">
+                <field name="date"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="folio_id" optional="show"/>
+                <field name="reservation_id" optional="hide"/>
+                <field name="hotel_payment_method_id" optional="show"/>
+                <field name="journal_id"/>
+                <field name="payment_method_line_id"/>
+                <field name="amount"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'posted'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action Paiements Hôtel avec vue spécifique - DOIT ÊTRE DÉFINI AVANT D'ÊTRE UTILISÉ -->
+    <record id="action_hotel_payment" model="ir.actions.act_window">
+        <field name="name">Paiements Hôtel</field>
+        <field name="res_model">account.payment</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_hotel_payment_list"/>
+        <field name="domain">[('folio_id', '!=', False)]</field>
+        <field name="context">{'default_payment_type': 'inbound', 'default_partner_type': 'customer'}</field>
+    </record>
+
+    <!-- Vue Formulaire Modes de Paiement - MAINTENANT action_hotel_payment EXISTE -->
+    <record id="view_hotel_payment_method_form" model="ir.ui.view">
+        <field name="name">hotel.payment.method.form</field>
+        <field name="model">hotel.payment.method</field>
+        <field name="arch" type="xml">
+            <form string="Mode de Paiement">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivé" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(action_hotel_payment)d"
+                                type="action"
+                                class="oe_stat_button"
+                                icon="fa-money"
+                                context="{'search_default_hotel_payment_method_id': id}">
+                            <field name="usage_count" widget="statinfo" string="Paiements"/>
+                        </button>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="sequence"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="payment_type"/>
+                            <field name="mobile_provider" invisible="payment_type != 'mobile_money'"/>
+                            <field name="journal_id"/>
+                        </group>
+                    </group>
+
+                    <group string="Configuration">
+                        <group>
+                            <field name="require_reference"/>
+                            <field name="require_phone"/>
+                        </group>
+                    </group>
+
+                    <group string="Description">
+                        <field name="description" placeholder="Description..." nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vue Recherche Modes de Paiement -->
+    <record id="view_hotel_payment_method_search" model="ir.ui.view">
+        <field name="name">hotel.payment.method.search</field>
+        <field name="model">hotel.payment.method</field>
+        <field name="arch" type="xml">
+            <search string="Modes de Paiement">
+                <field name="name"/>
+                <field name="code"/>
+                <separator/>
+                <filter string="Mobile Money" name="mobile_money" domain="[('payment_type', '=', 'mobile_money')]"/>
+                <filter string="Espèces" name="cash" domain="[('payment_type', '=', 'cash')]"/>
+                <filter string="Carte Bancaire" name="bank_card" domain="[('payment_type', '=', 'bank_card')]"/>
+                <separator/>
+                <filter string="Actifs" name="active" domain="[('active', '=', True)]"/>
+                <group expand="0" string="Grouper Par">
+                    <filter string="Type" name="group_type" context="{'group_by': 'payment_type'}"/>
+                    <filter string="Opérateur" name="group_provider" context="{'group_by': 'mobile_provider'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action Modes de Paiement -->
+    <record id="action_hotel_payment_method" model="ir.actions.act_window">
+        <field name="name">Modes de Paiement</field>
+        <field name="res_model">hotel.payment.method</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Configurer les modes de paiement
+            </p>
+            <p>
+                Définissez les modes de paiement acceptés dans votre hôtel.
+            </p>
+        </field>
+    </record>
+
+</odoo>

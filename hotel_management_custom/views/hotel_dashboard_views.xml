@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Vue Graphique pour Tableau de Bord -->
+    <record id="view_hotel_dashboard_graph" model="ir.ui.view">
+        <field name="name">hotel.reservation.dashboard.graph</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <graph string="Tableau de Bord Hôtel" type="bar" sample="1">
+                <field name="checkin_date" interval="month"/>
+                <field name="total_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Vue Pivot pour Analyse -->
+    <record id="view_hotel_dashboard_pivot" model="ir.ui.view">
+        <field name="name">hotel.reservation.dashboard.pivot</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <pivot string="Analyse Hôtel" sample="1">
+                <field name="checkin_date" interval="month" type="row"/>
+                <field name="state" type="col"/>
+                <field name="total_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Vue Kanban pour Statistiques -->
+    <record id="view_hotel_dashboard_kanban" model="ir.ui.view">
+        <field name="name">hotel.reservation.dashboard.kanban</field>
+        <field name="model">hotel.reservation</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard" sample="1">
+                <field name="state"/>
+                <field name="total_amount"/>
+                <field name="checkin_date"/>
+                <field name="checkout_date"/>
+                <field name="partner_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="o_kanban_card_header">
+                                    <div class="o_kanban_card_header_title">
+                                        <div class="o_primary">
+                                            <strong>
+                                                <field name="folio_id"/>
+                                            </strong>
+                                        </div>
+                                        <div class="text-muted">
+                                            <field name="partner_id"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_card_body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <span>Arrivée:</span> <field name="checkin_date"/>
+                                        </div>
+                                        <div class="col-6">
+                                            <span>Départ:</span> <field name="checkout_date"/>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <strong>Montant: <field name="total_amount" widget="monetary"/></strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_card_footer">
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'confirmed'"
+                                           decoration-info="state == 'draft'"
+                                           decoration-warning="state == 'checkedin'"
+                                           decoration-danger="state == 'cancelled'"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Action Tableau de Bord -->
+    <record id="action_hotel_dashboard" model="ir.actions.act_window">
+        <field name="name">Tableau de Bord</field>
+        <field name="res_model">hotel.reservation</field>
+        <field name="view_mode">kanban,graph,pivot,list,form</field>
+        <field name="domain">[('state', '!=', 'cancelled')]</field>
+        <field name="context">{
+            'search_default_this_month': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Tableau de Bord Hôtel
+            </p>
+            <p>
+                Visualisez vos réservations et statistiques ici.<br/>
+                Créez des réservations pour voir les données.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Tableau de Bord -->
+    <menuitem id="menu_hotel_dashboard"
+              name="Tableau de Bord"
+              parent="menu_hotel_root"
+              action="action_hotel_dashboard"
+              sequence="5"/>
+
+</odoo>
