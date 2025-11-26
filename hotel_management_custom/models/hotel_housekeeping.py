@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError , ValidationError
 
 
 class HotelHousekeeping(models.Model):
@@ -75,6 +75,16 @@ class HotelHousekeeping(models.Model):
 
     color = fields.Integer(string='Couleur Kanban')
 
+    @api.constrains('room_id')
+    def _check_room_not_occupied(self):
+        """Vérifier que la chambre n'est pas occupée"""
+        for record in self:
+            if record.room_id.status == 'occupied':
+                raise ValidationError(_(
+                    'Impossible de créer un nettoyage pour la chambre %s car elle est actuellement occupée. '
+                    'Veuillez d\'abord effectuer le check-out du client.'
+                ) % record.room_id.name)
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -96,6 +106,13 @@ class HotelHousekeeping(models.Model):
         for record in self:
             if record.state != 'pending':
                 raise UserError(_('Seules les tâches en attente peuvent être démarrées.'))
+
+            # Vérifier que la chambre n'est pas occupée
+            if record.room_id.status == 'occupied':
+                raise UserError(_(
+                    'Impossible de démarrer le nettoyage de la chambre %s car elle est actuellement occupée. '
+                    'Veuillez d\'abord effectuer le check-out du client.'
+                ) % record.room_id.name)    
 
             record.write({
                 'state': 'in_progress',
