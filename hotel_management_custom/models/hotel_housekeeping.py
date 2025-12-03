@@ -193,7 +193,7 @@ class HotelHousekeepingProduct(models.Model):
     housekeeping_id = fields.Many2one('hotel.housekeeping', string='Nettoyage',
                                       required=True, ondelete='cascade')
     product_id = fields.Many2one('product.product', string='Produit',
-                                 required=True, domain=[('type', '=', 'product')])
+                                 required=True, domain=[('type', '=', 'consu')]) # type = consu ou service ou combo
     quantity = fields.Float(string='Quantité', required=True, default=1.0)
     uom_id = fields.Many2one(related='product_id.uom_id', string='Unité')
 
@@ -213,7 +213,8 @@ class HotelHousekeepingProduct(models.Model):
 
         # Trouver les emplacements
         location_src = self.env.ref('stock.stock_location_stock', raise_if_not_found=False)
-        location_dest = self.env.ref('stock.stock_location_production', raise_if_not_found=False)
+        # Utiliser un emplacement de consommation/perte pour les produits de nettoyage utilisés
+        location_dest = self.env.ref('stock.stock_location_customers', raise_if_not_found=False)
 
         if not location_src or not location_dest:
             return

@@ -18,6 +18,18 @@
         * Services consommés (room service, bar)
         * Rapports et tableaux de bord détaillés
         * Notifications automatiques
+
+
+          Fonctionnalités Comptables:
+        • Intégration complète avec la comptabilité
+        • Gestion des acomptes et paiements partiels
+        • Modes de paiement liés à des comptes comptables
+        • Facturation automatique et comptabilisation
+        • Écritures comptables créées automatiquement
+        • Rapport comptable détaillé (Pivot, Graphique, Tableau)
+        • Paiements d'avance traçables
+        • Créditage automatique des dépôts
+        • Support Multi-paiement (Espèces, Carte, Chèque, Mobile Money, Virement)
     """,
     'author': 'DIGIFAZ',
 
@@ -40,6 +52,7 @@
         'data/hotel_sequence.xml',
         'data/hotel_cron.xml',
         'data/payment_method_data.xml',
+        'data/hotel_accounting_data.xml',
 
         'views/hotel_room_views.xml',
         'views/hotel_room_type_views.xml',
@@ -57,9 +70,10 @@
         'wizard/hotel_checkin_wizard_views.xml',
         'wizard/hotel_checkout_wizard_views.xml',
 
-
         'views/hotel_menu_views.xml',
 
+        # Vues - Comptabilité (chargées après les vues de base)
+        'views/hotel_accounting_views.xml',
 
         'report/hotel_report_views.xml',
         'report/hotel_reservation_report.xml',
@@ -72,4 +86,5 @@
     'application': True,
     'auto_install': False,
     'license': 'LGPL-3',
+    'currency': 'XOF',
 }

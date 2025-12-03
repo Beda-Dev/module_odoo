@@ -9,3 +9,4 @@ from . import hotel_service_line
 from . import hotel_housekeeping
 from . import hotel_payment_method
 from . import account_payment
+from . import hotel_accounting

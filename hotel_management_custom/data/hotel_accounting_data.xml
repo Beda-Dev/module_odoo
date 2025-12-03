@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ============= SERVICE DOMMAGES ============= -->
+        <record id="service_damage" model="hotel.service">
+            <field name="name">Frais de Dommages</field>
+            <field name="category">other</field>
+            <field name="price">0</field>
+            <field name="sequence">999</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- ============= PARAMÈTRES SYSTÈME ============= -->
+        <!-- Compte Revenue par défaut (à configurer) -->
+        <record id="hotel_account_revenue_config" model="ir.config_parameter">
+            <field name="key">hotel.account_revenue_id</field>
+            <field name="value">0</field>
+        </record>
+
+    </data>
+</odoo>
