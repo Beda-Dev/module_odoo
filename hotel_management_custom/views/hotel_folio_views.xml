@@ -28,7 +28,7 @@
             <form string="Notes de séjour client">
                 <header>
                     <button name="action_create_invoice" string="Créer Facture" type="object"
-                            class="btn-primary" invisible="state != 'open'"/>
+                            class="btn-primary" invisible="state != 'open' or invoice_count > 0"/>
                     <button name="action_close_folio" string="Fermer Notes de séjour client" type="object"
                             class="btn-success" invisible="state != 'open'"/>
                     <field name="state" widget="statusbar"/>

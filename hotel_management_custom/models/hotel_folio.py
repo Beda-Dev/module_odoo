@@ -66,7 +66,7 @@ class HotelFolio(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('hotel.folio') or _('Nouveau')
         return super(HotelFolio, self).create(vals_list)
     
-    @api.depends('reservation_id.total_amount', 'service_line_ids.price_subtotal', 'payment_ids.amount')
+    @api.depends('reservation_id.total_amount', 'service_line_ids.price_subtotal', 'payment_ids.state', 'payment_ids.amount', 'reservation_id.advance_payment_ids.state', 'reservation_id.advance_payment_ids.amount')
     def _compute_amounts(self):
         for folio in self:
             # Total chambre depuis la réservation
@@ -80,8 +80,14 @@ class HotelFolio(models.Model):
             # Total général
             folio.amount_total = folio.room_total + folio.service_total
             
-            # Montant payé
-            folio.amount_paid = sum(folio.payment_ids.mapped('amount'))
+            # Montant payé (paiements folio + acomptes réservation)
+            folio_payments = sum(
+                folio.payment_ids.filtered(lambda p: p.state == 'paid').mapped('amount')
+            )
+            reservation_deposits = sum(
+                folio.reservation_id.advance_payment_ids.filtered(lambda p: p.state == 'paid').mapped('amount')
+            )
+            folio.amount_paid = folio_payments + reservation_deposits
             
             # Solde dû
             folio.amount_due = folio.amount_total - folio.amount_paid
@@ -106,60 +112,7 @@ class HotelFolio(models.Model):
             },
         }
     
-    def action_create_invoice(self):
-        """Créer une facture pour le folio"""
-        self.ensure_one()
         
-        # Vérifier si une facture existe déjà
-        if self.invoice_ids.filtered(lambda inv: inv.state == 'draft'):
-            existing_invoice = self.invoice_ids.filtered(lambda inv: inv.state == 'draft')[0]
-            return {
-                'name': _('Facture'),
-                'type': 'ir.actions.act_window',
-                'res_model': 'account.move',
-                'view_mode': 'form',
-                'res_id': existing_invoice.id,
-            }
-        
-        # Créer une nouvelle facture
-        invoice_lines = []
-        
-        # Ligne pour la chambre
-        if self.room_total > 0:
-            invoice_lines.append((0, 0, {
-                'name': _('Hébergement - Chambre %s (%d nuits)') % (
-                    self.room_id.name,
-                    self.reservation_id.duration_days
-                ),
-                'quantity': self.reservation_id.duration_days,
-                'price_unit': self.room_total / self.reservation_id.duration_days,
-            }))
-        
-        # Lignes pour les services
-        for service_line in self.service_line_ids:
-            invoice_lines.append((0, 0, {
-                'name': service_line.service_id.name,
-                'quantity': service_line.quantity,
-                'price_unit': service_line.price_unit,
-            }))
-        
-        invoice = self.env['account.move'].create({
-            'move_type': 'out_invoice',
-            'partner_id': self.partner_id.id,
-            'invoice_date': fields.Date.today(),
-            'invoice_line_ids': invoice_lines,
-        })
-        
-        self.invoice_ids = [(4, invoice.id)]
-        
-        return {
-            'name': _('Facture'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'account.move',
-            'view_mode': 'form',
-            'res_id': invoice.id,
-        }
-    
     def action_view_invoices(self):
         """Voir les factures"""
         self.ensure_one()

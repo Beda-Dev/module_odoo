@@ -39,6 +39,7 @@ class HotelPaymentMethod(models.Model):
 class HotelReservation(models.Model):
     """Extension réservation avec gestion des acomptes"""
     _inherit = 'hotel.reservation'
+    
 
     # Gestion de l'acompte
     deposit_amount = fields.Float(
@@ -64,16 +65,6 @@ class HotelReservation(models.Model):
         string='Paiements d\'Avance',
         readonly=True,
         domain=[('is_advance_payment', '=', True)]
-    )
-
-    # Écritures comptables
-    accounting_move_ids = fields.Many2many(
-        'account.move',
-        'reservation_accounting_move_rel',
-        'reservation_id',
-        'move_id',
-        string='Écritures Comptables',
-        readonly=True
     )
 
     @api.depends('advance_payment_ids.amount', 'advance_payment_ids.state')
@@ -114,73 +105,10 @@ class HotelReservation(models.Model):
         }
 
     def action_confirm(self):
-        """Confirmer la réservation avec création du folio et écritures comptables"""
+        """Confirmer la réservation avec création du folio"""
         result = super().action_confirm()
-
-        for reservation in self:
-            if reservation.folio_id and reservation.hotel_payment_method_id:
-                reservation._create_reservation_accounting_entry()
-
+        # La comptabilité sera gérée automatiquement via les paiements et factures
         return result
-
-    def _create_reservation_accounting_entry(self):
-        """Créer les écritures comptables de réservation"""
-        self.ensure_one()
-
-        if not self.hotel_payment_method_id.journal_id:
-            return
-
-        try:
-            journal = self.hotel_payment_method_id.journal_id
-            lines = []
-
-            # Compte client (débit)
-            client_account = self.partner_id.property_account_receivable_id
-            lines.append((0, 0, {
-                'account_id': client_account.id,
-                'debit': self.total_amount,
-                'credit': 0.0,
-                'name': _('Réservation - Client %s') % self.partner_id.name,
-            }))
-
-            # Compte revenue (crédit)
-            revenue_account_id = int(
-                self.env['ir.config_parameter'].sudo().get_param(
-                    'hotel.account_revenue_id', '0'
-                )
-            )
-            if not revenue_account_id:
-                # Utiliser le compte de revenu par défaut du système
-                revenue_account = self.env['account.account'].search([
-                    ('account_type', '=', 'income'),
-                    ('company_ids', 'in', [self.env.company.id]),
-                    ('deprecated', '=', False)
-                ], limit=1)
-                revenue_account_id = revenue_account.id if revenue_account else 0
-
-            lines.append((0, 0, {
-                'account_id': revenue_account_id,
-                'debit': 0.0,
-                'credit': self.total_amount,
-                'name': _('Revenue - Réservation %s') % self.name,
-            }))
-
-            # Créer l'écriture
-            move = self.env['account.move'].create({
-                'journal_id': journal.id,
-                'date': fields.Date.today(),
-                'ref': _('RES-%s') % self.name,
-                'line_ids': lines,
-            })
-
-            self.accounting_move_ids = [(4, move.id)]
-            move.action_post()
-
-        except Exception as e:
-            self.message_post(
-                body=_('Erreur lors de la création de l\'écriture comptable: %s') % str(e),
-                message_type='notification'
-            )
 
 
 class HotelFolio(models.Model):
@@ -247,6 +175,14 @@ class HotelFolio(models.Model):
 
         # Ligne hébergement
         if self.room_total > 0:
+            # Utiliser un produit service par défaut ou créer un produit générique
+            product = self.env['product.product'].search([
+                ('name', 'ilike', 'hébergement'),
+                ('type', '=', 'service')
+            ], limit=1) or self.env['product.product'].search([
+                ('type', '=', 'service')
+            ], limit=1)
+            
             invoice_lines.append((0, 0, {
                 'name': _('Hébergement - Chambre %s (%d nuits)') % (
                     self.room_id.name,
@@ -255,6 +191,8 @@ class HotelFolio(models.Model):
                 'quantity': self.reservation_id.duration_days,
                 'price_unit': self.room_total / self.reservation_id.duration_days 
                     if self.reservation_id.duration_days else self.room_total,
+                'product_id': product.id if product else False,
+                'account_id': product.property_account_income_id.id if product and product.property_account_income_id else False,
             }))
 
         # Lignes services
@@ -263,6 +201,9 @@ class HotelFolio(models.Model):
                 'name': service_line.service_id.name,
                 'quantity': service_line.quantity,
                 'price_unit': service_line.price_unit,
+                'product_id': service_line.service_id.product_id.id if service_line.service_id.product_id else False,
+                'account_id': service_line.service_id.product_id.property_account_income_id.id 
+                    if service_line.service_id.product_id and service_line.service_id.product_id.property_account_income_id else False,
             }))
 
         # Créer la facture
@@ -370,13 +311,17 @@ class AccountPayment(models.Model):
             self.journal_id = self.hotel_payment_method_id.journal_id
 
     def action_post(self):
-        """Poster le paiement et mettre à jour les montants"""
+        """Poster le paiement avec validation et mise à jour"""
+        # Valider le paiement
         result = super().action_post()
 
         for payment in self:
-            # Mettre à jour folio
+            # Mettre à jour le folio
             if payment.folio_id:
                 payment.folio_id._compute_amounts()
+                # Créer automatiquement la facture si nécessaire
+                if payment.folio_id.amount_due <= 0 and not payment.folio_id.invoice_ids.filtered(lambda i: i.state == 'posted'):
+                    payment.folio_id.action_create_invoice()
 
             # Marquer date acompte si c'est un paiement d'avance
             if payment.reservation_id and payment.is_advance_payment:
