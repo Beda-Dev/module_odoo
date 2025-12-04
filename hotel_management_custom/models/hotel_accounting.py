@@ -375,7 +375,7 @@ class HotelFolio(models.Model):
             'name': _('Écritures Comptables'),
             'type': 'ir.actions.act_window',
             'res_model': 'account.move',
-            'view_mode': 'tree,form',
+            'view_mode': 'list,form',
             'domain': [('id', 'in', self.accounting_move_ids.ids)],
         }
 

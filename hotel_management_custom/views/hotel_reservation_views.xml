@@ -70,6 +70,18 @@
                             
                         </button>
                         
+                        <!-- Factures -->
+                        <button name="action_view_invoices" type="object"
+                                class="oe_stat_button" icon="fa-file-invoice"
+                                invisible="not invoice_ids">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Factures</span>
+                                <span class="o_stat_value">
+                                    <field name="invoice_ids" widget="statinfo" string="Factures"/>
+                                </span>
+                            </div>
+                        </button>
+                        
                         <!-- Folio -->
                         <button name="action_view_folio" type="object"
                                 class="oe_stat_button" icon="fa-file-text"
@@ -209,13 +221,31 @@
                         </page>
                         
                         <page string="Factures" name="invoices" invisible="not invoice_ids">
-                            <field name="invoice_ids" readonly="1">
+                            <field name="invoice_ids" readonly="1" context="{'res_model': 'account.move'}">
                                 <list>
-                                    <field name="name"/>
-                                    <field name="invoice_date"/>
-                                    <field name="amount_total" widget="monetary"/>
-                                    <field name="state" widget="badge"/>
+                                    <field name="name" optional="show" string="Numéro"/>
+                                    <field name="invoice_date" optional="show"/>
+                                    <field name="amount_total" widget="monetary" string="Montant"/>
+                                    <field name="state" widget="badge" string="État"/>
+                                    <field name="payment_state" widget="badge" string="Paiement"/>
                                 </list>
+                                <form>
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="name" readonly="1"/>
+                                                <field name="invoice_date" readonly="1"/>
+                                                <field name="invoice_date_due" readonly="1"/>
+                                            </group>
+                                            <group>
+                                                <field name="amount_total" widget="monetary" readonly="1"/>
+                                                <field name="amount_residual" widget="monetary" readonly="1"/>
+                                                <field name="state" widget="badge" readonly="1"/>
+                                                <field name="payment_state" widget="badge" readonly="1"/>
+                                            </group>
+                                        </group>
+                                    </sheet>
+                                </form>
                             </field>
                         </page>
                     </notebook>

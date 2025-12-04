@@ -93,7 +93,24 @@ class HotelReservation(models.Model):
     folio_id = fields.Many2one('hotel.folio', string='Notes de séjour client', readonly=True)
     service_line_ids = fields.One2many('hotel.service.line', 'reservation_id',
                                        string='Services Consommés')
-    invoice_ids = fields.Many2many('account.move', string='Factures', readonly=True)
+    invoice_ids = fields.Many2many('account.move', string='Factures', readonly=True, copy=False)
+
+    def action_view_invoices(self):
+        """Ouvre la vue des factures liées à la réservation"""
+        self.ensure_one()
+        action = self.env.ref('account.action_move_out_invoice_type').read()[0]
+        if len(self.invoice_ids) == 1:
+            action.update({
+                'view_mode': 'form',
+                'res_id': self.invoice_ids.id,
+                'views': [(False, 'form')],
+            })
+        else:
+            action.update({
+                'domain': [('id', 'in', self.invoice_ids.ids)],
+                'views': [(False, 'list'), (False, 'form')],
+            })
+        return action
 
     # État
     state = fields.Selection([
