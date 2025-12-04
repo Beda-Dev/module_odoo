@@ -213,8 +213,18 @@ class HotelHousekeepingProduct(models.Model):
 
         # Trouver les emplacements
         location_src = self.env.ref('stock.stock_location_stock', raise_if_not_found=False)
-        # Utiliser un emplacement de consommation/perte pour les produits de nettoyage utilisés
+        if not location_src:
+            # Fallback : chercher un emplacement interne
+            location_src = self.env['stock.location'].search([
+                ('usage', '=', 'internal')
+            ], limit=1)
+
         location_dest = self.env.ref('stock.stock_location_customers', raise_if_not_found=False)
+        if not location_dest:
+            # Fallback : chercher un emplacement client
+            location_dest = self.env['stock.location'].search([
+                ('usage', '=', 'customer')
+            ], limit=1)
 
         if not location_src or not location_dest:
             return

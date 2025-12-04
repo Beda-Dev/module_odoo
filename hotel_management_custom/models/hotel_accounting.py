@@ -37,15 +37,16 @@ class HotelPaymentMethod(models.Model):
 
 
 class HotelReservation(models.Model):
-    """Extension réservation avec gestion des acomptes"""
+    """Extension réservation avec gestion des acomptes et paiements anticipés"""
     _inherit = 'hotel.reservation'
     
-
     # Gestion de l'acompte
     deposit_amount = fields.Float(
         string='Montant Acompte Demandé',
-        default=0.0,
-        help='Montant de l\'acompte que le client doit payer avant le séjour'
+        compute='_compute_deposit_amount',
+        store=True,
+        readonly=False,
+        help='Montant de l\'acompte que le client doit payer'
     )
     deposit_paid = fields.Float(
         string='Acompte Déjà Payé',
@@ -57,25 +58,82 @@ class HotelReservation(models.Model):
         string='Date Paiement Acompte',
         readonly=True
     )
+    deposit_percentage = fields.Float(
+        string='Pourcentage Acompte (%)',
+        compute='_compute_deposit_percentage',
+        store=True,
+        readonly=False,
+        help='Pourcentage du montant total à demander en acompte'
+    )
     
-    # Paiements d'avance liés
+    # Paiements anticipés (incluant acomptes)
     advance_payment_ids = fields.One2many(
         'account.payment',
         'reservation_id',
-        string='Paiements d\'Avance',
+        string='Paiements Anticipés',
         readonly=True,
         domain=[('is_advance_payment', '=', True)]
     )
+    
+    # Écritures comptables liées
+    accounting_move_ids = fields.Many2many(
+        'account.move',
+        'reservation_accounting_move_rel',
+        'reservation_id',
+        'move_id',
+        string='Écritures Comptables',
+        readonly=True
+    )
+    
+    # Statut paiement anticipé
+    advance_payment_status = fields.Selection([
+        ('none', 'Aucun Paiement'),
+        ('partial', 'Paiement Partiel'),
+        ('deposit_paid', 'Acompte Payé'),
+        ('full_paid', 'Totalement Payé'),
+    ], string='Statut Paiement Anticipé', compute='_compute_advance_payment_status', store=True)
+
+    @api.depends('total_amount', 'state')
+    def _compute_deposit_percentage(self):
+        """Calculer le pourcentage d'acompte par défaut depuis la configuration"""
+        deposit_percentage = float(self.env['ir.config_parameter'].sudo().get_param(
+            'hotel.deposit_percentage', default='0'
+        ))
+        for reservation in self:
+            if not reservation.deposit_percentage and reservation.state == 'draft':
+                reservation.deposit_percentage = deposit_percentage
+
+    @api.depends('total_amount', 'deposit_percentage')
+    def _compute_deposit_amount(self):
+        """Calculer l'acompte basé sur le pourcentage"""
+        for reservation in self:
+            if reservation.deposit_percentage > 0:
+                reservation.deposit_amount = (reservation.total_amount * reservation.deposit_percentage) / 100
+            elif not reservation.deposit_amount:
+                reservation.deposit_amount = 0.0
 
     @api.depends('advance_payment_ids.amount', 'advance_payment_ids.state')
     def _compute_deposit_paid(self):
         """Calculer l'acompte déjà payé"""
         for reservation in self:
-            reservation.deposit_paid = sum(
-                reservation.advance_payment_ids.filtered(
-                    lambda p: p.state == 'paid'
-                ).mapped('amount')
-            )
+            paid_amount = 0
+            for payment in reservation.advance_payment_ids:
+                if hasattr(payment, 'state') and payment.state == 'posted':
+                    paid_amount += payment.amount
+            reservation.deposit_paid = paid_amount
+
+    @api.depends('deposit_paid', 'deposit_amount', 'total_amount')
+    def _compute_advance_payment_status(self):
+        """Calculer le statut des paiements anticipés"""
+        for reservation in self:
+            if reservation.deposit_paid <= 0:
+                reservation.advance_payment_status = 'none'
+            elif reservation.deposit_paid >= reservation.total_amount:
+                reservation.advance_payment_status = 'full_paid'
+            elif reservation.deposit_paid >= reservation.deposit_amount and reservation.deposit_amount > 0:
+                reservation.advance_payment_status = 'deposit_paid'
+            else:
+                reservation.advance_payment_status = 'partial'
 
     def action_request_deposit(self):
         """Action pour demander un acompte"""
@@ -83,7 +141,7 @@ class HotelReservation(models.Model):
 
         if self.state not in ['draft', 'confirmed']:
             raise UserError(
-                _('Vous pouvez demander un acompte que sur une réservation brouillon ou confirmée.')
+                _('Vous ne pouvez demander un acompte que sur une réservation brouillon ou confirmée.')
             )
 
         if not self.deposit_amount or self.deposit_amount <= 0:
@@ -98,17 +156,54 @@ class HotelReservation(models.Model):
             'context': {
                 'default_reservation_id': self.id,
                 'default_partner_id': self.partner_id.id,
-                'default_amount': self.deposit_amount,
+                'default_amount': self.deposit_amount - self.deposit_paid,
                 'default_payment_type': 'inbound',
+                'default_partner_type': 'customer',
+                'default_is_advance_payment': True,
+            },
+        }
+
+    def action_register_advance_payment(self):
+        """Action pour enregistrer un paiement anticipé (partiel ou total)"""
+        self.ensure_one()
+
+        if self.state not in ['draft', 'confirmed']:
+            raise UserError(
+                _('Vous ne pouvez enregistrer un paiement que sur une réservation brouillon ou confirmée.')
+            )
+
+        return {
+            'name': _('Paiement Anticipé - %s') % self.name,
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.payment',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_reservation_id': self.id,
+                'default_partner_id': self.partner_id.id,
+                'default_amount': self.total_amount - self.deposit_paid,
+                'default_payment_type': 'inbound',
+                'default_partner_type': 'customer',
                 'default_is_advance_payment': True,
             },
         }
 
     def action_confirm(self):
-        """Confirmer la réservation avec création du folio"""
-        result = super().action_confirm()
-        # La comptabilité sera gérée automatiquement via les paiements et factures
-        return result
+        """Confirmer la réservation avec vérification de l'acompte si requis"""
+        for reservation in self:
+            # Vérifier si l'acompte est obligatoire
+            deposit_required = self.env['ir.config_parameter'].sudo().get_param(
+                'hotel.deposit_required', default='False'
+            ) == 'True'
+            
+            if deposit_required and reservation.deposit_amount > 0:
+                if reservation.deposit_paid < reservation.deposit_amount:
+                    raise UserError(_(
+                        'Un acompte de %s est requis avant de confirmer la réservation. '
+                        'Montant déjà payé : %s'
+                    ) % (reservation.deposit_amount, reservation.deposit_paid))
+        
+        return super(HotelReservation, self).action_confirm()
 
 
 class HotelFolio(models.Model):
@@ -124,19 +219,19 @@ class HotelFolio(models.Model):
 
     # Gestion du dépôt
     deposit_credited = fields.Boolean(
-        string='Dépôt Utilisé pour Régler',
+        string='Acompte Utilisé',
         default=False,
-        help='Le dépôt a été crédité contre le montant dû'
+        help='Les paiements anticipés ont été appliqués au folio'
     )
 
-    # Écritures comptables du folio
     accounting_move_ids = fields.Many2many(
-        'account.move',
-        'folio_accounting_move_rel',
-        'folio_id',
-        'move_id',
-        string='Écritures Comptables',
-        readonly=True
+        'account.move',                      # Modèle lié (les écritures comptables)
+        'folio_accounting_move_rel',         # Nom de la table de relation
+        'folio_id',                          # Champ pour ce modèle dans la table de relation
+        'move_id',                           # Champ pour le modèle lié dans la table de relation
+        string='Écritures Comptables',       # Libellé du champ dans l'interface
+        readonly=True,                       # Lecture seule car gérée par le système
+        help='Écritures comptables liées à ce folio'  # Aide contextuelle
     )
 
     @api.depends('invoice_ids.state')
@@ -175,13 +270,15 @@ class HotelFolio(models.Model):
 
         # Ligne hébergement
         if self.room_total > 0:
-            # Utiliser un produit service par défaut ou créer un produit générique
             product = self.env['product.product'].search([
                 ('name', 'ilike', 'hébergement'),
                 ('type', '=', 'service')
-            ], limit=1) or self.env['product.product'].search([
-                ('type', '=', 'service')
             ], limit=1)
+            
+            if not product:
+                product = self.env['product.product'].search([
+                    ('type', '=', 'service')
+                ], limit=1)
             
             invoice_lines.append((0, 0, {
                 'name': _('Hébergement - Chambre %s (%d nuits)') % (
@@ -223,6 +320,10 @@ class HotelFolio(models.Model):
 
         self.invoice_ids = [(4, invoice.id)]
         self.accounting_move_ids = [(4, invoice.id)]
+
+        # Marquer les acomptes comme crédités
+        if self.reservation_id.advance_payment_ids and not self.deposit_credited:
+            self.deposit_credited = True
 
         return {
             'name': _('Facture'),
@@ -299,9 +400,9 @@ class AccountPayment(models.Model):
 
     # Type de paiement
     is_advance_payment = fields.Boolean(
-        string='Paiement d\'Avance',
+        string='Paiement Anticipé',
         default=False,
-        help='Indique si c\'est un paiement d\'avance sur réservation'
+        help='Indique si c\'est un paiement anticipé sur réservation (acompte ou paiement total)'
     )
 
     @api.onchange('hotel_payment_method_id')
@@ -312,23 +413,46 @@ class AccountPayment(models.Model):
 
     def action_post(self):
         """Poster le paiement avec validation et mise à jour"""
-        # Valider le paiement
         result = super().action_post()
 
         for payment in self:
             # Mettre à jour le folio
             if payment.folio_id:
                 payment.folio_id._compute_amounts()
-                # Créer automatiquement la facture si nécessaire
+                # Créer automatiquement la facture si totalement payé
                 if payment.folio_id.amount_due <= 0 and not payment.folio_id.invoice_ids.filtered(lambda i: i.state == 'posted'):
                     payment.folio_id.action_create_invoice()
 
             # Marquer date acompte si c'est un paiement d'avance
             if payment.reservation_id and payment.is_advance_payment:
-                payment.reservation_id.deposit_date = fields.Date.today()
+                if not payment.reservation_id.deposit_date:
+                    payment.reservation_id.deposit_date = fields.Date.today()
                 payment.reservation_id._compute_deposit_paid()
 
         return result
+
+
+class ResConfigSettings(models.TransientModel):
+    """Configuration des paramètres hôtel"""
+    _inherit = 'res.config.settings'
+
+    # Configuration acomptes
+    hotel_deposit_required = fields.Boolean(
+        string='Acompte Obligatoire',
+        config_parameter='hotel.deposit_required',
+        help='Si activé, un acompte sera obligatoire avant de confirmer une réservation'
+    )
+    hotel_deposit_percentage = fields.Float(
+        string='Pourcentage Acompte (%)',
+        config_parameter='hotel.deposit_percentage',
+        help='Pourcentage du montant total à demander en acompte par défaut'
+    )
+    hotel_allow_full_prepayment = fields.Boolean(
+        string='Autoriser Paiement Total Anticipé',
+        default=True,
+        config_parameter='hotel.allow_full_prepayment',
+        help='Permet aux clients de payer la totalité avant leur arrivée'
+    )
 
 
 class HotelAccountingReport(models.Model):
@@ -350,6 +474,7 @@ class HotelAccountingReport(models.Model):
     service_total = fields.Float(string='Total Services', readonly=True)
     amount_total = fields.Float(string='Montant Total', readonly=True)
     amount_paid = fields.Float(string='Montant Payé', readonly=True)
+    advance_paid = fields.Float(string='Paiements Anticipés', readonly=True)
     amount_due = fields.Float(string='Solde Dû', readonly=True)
 
     invoice_count = fields.Integer(string='Factures', readonly=True)
@@ -378,15 +503,16 @@ class HotelAccountingReport(models.Model):
                     COALESCE(r.total_amount, 0) - COALESCE(SUM(CASE WHEN sl.id IS NOT NULL THEN sl.price_subtotal ELSE 0 END), 0) as room_total,
                     COALESCE(SUM(CASE WHEN sl.id IS NOT NULL THEN sl.price_subtotal ELSE 0 END), 0) as service_total,
                     COALESCE(r.total_amount, 0) as amount_total,
-                    COALESCE(SUM(CASE WHEN ap.state = 'paid' THEN ap.amount ELSE 0 END), 0) as amount_paid,
-                    COALESCE(r.total_amount, 0) - COALESCE(SUM(CASE WHEN ap.state = 'paid' THEN ap.amount ELSE 0 END), 0) as amount_due,
+                    COALESCE(SUM(CASE WHEN ap.state IN ('posted', 'reconciled') THEN ap.amount ELSE 0 END), 0) as amount_paid,
+                    COALESCE(SUM(CASE WHEN ap.state IN ('posted', 'reconciled') AND ap.is_advance_payment = true THEN ap.amount ELSE 0 END), 0) as advance_paid,
+                    COALESCE(r.total_amount, 0) - COALESCE(SUM(CASE WHEN ap.state IN ('posted', 'reconciled') THEN ap.amount ELSE 0 END), 0) as amount_due,
                     COALESCE(COUNT(DISTINCT inv.id), 0) as invoice_count,
-                    COALESCE(COUNT(DISTINCT CASE WHEN ap.state = 'paid' THEN ap.id END), 0) as payment_count,
+                    COALESCE(COUNT(DISTINCT CASE WHEN ap.state IN ('posted', 'reconciled') THEN ap.id END), 0) as payment_count,
                     f.state
                 FROM hotel_folio f
                 LEFT JOIN hotel_reservation r ON f.reservation_id = r.id
                 LEFT JOIN hotel_service_line sl ON f.id = sl.folio_id
-                LEFT JOIN account_payment ap ON f.id = ap.folio_id
+                LEFT JOIN account_payment ap ON (f.id = ap.folio_id OR r.id = ap.reservation_id)
                 LEFT JOIN folio_invoice_rel fir ON f.id = fir.folio_id
                 LEFT JOIN account_move inv ON fir.invoice_id = inv.id
                 GROUP BY f.id, r.id, f.partner_id, r.room_id, r.checkin_date, r.checkout_date, r.total_amount, f.state

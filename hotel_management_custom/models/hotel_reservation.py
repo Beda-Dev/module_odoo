@@ -46,6 +46,13 @@ class HotelReservation(models.Model):
     # Mode de paiement
     hotel_payment_method_id = fields.Many2one('hotel.payment.method', string='Mode de Paiement')
 
+    # Gestion des acomptes
+    require_deposit = fields.Boolean(string='Acompte Requis', default=False)
+    deposit_amount = fields.Float(string="Montant de l'acompte", tracking=True)
+    deposit_paid = fields.Float(string='Acompte Payé', compute='_compute_deposit_paid', store=True)
+    allow_full_prepayment = fields.Boolean(string='Paiement Total Autorisé', default=False)
+    is_fully_paid = fields.Boolean(string='Totalement Payé', compute='_compute_payment_status', store=True)
+
     # Relations
     folio_id = fields.Many2one('hotel.folio', string='Notes de séjour client', readonly=True)
     service_line_ids = fields.One2many('hotel.service.line', 'reservation_id',
@@ -96,10 +103,30 @@ class HotelReservation(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        # Récupération des paramètres de configuration
+        icp = self.env['ir.config_parameter'].sudo()
+        # Récupération et conversion sécurisée des paramètres
+        deposit_required = str(icp.get_param('hotel_management_custom.deposit_required', 'False')).lower() == 'true'
+        deposit_percentage = float(icp.get_param('hotel_management_custom.deposit_percentage', '0') or '0')
+        allow_full_prepayment = str(icp.get_param('hotel_management_custom.allow_full_prepayment', 'False')).lower() == 'true'
+        
+        # Traitement de chaque ensemble de valeurs
         for vals in vals_list:
+            # Génération du numéro de réservation
             if vals.get('name', _('Nouveau')) == _('Nouveau'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('hotel.reservation') or _('Nouveau')
-        return super(HotelReservation, self).create(vals_list)
+            
+            # Application des paramètres
+            if deposit_required:
+                vals['require_deposit'] = True
+                if 'total_amount' in vals and deposit_percentage > 0:
+                    vals['deposit_amount'] = (vals['total_amount'] * deposit_percentage) / 100
+            
+            if allow_full_prepayment:
+                vals['allow_full_prepayment'] = True
+        
+        # Appel à la méthode parente avec la liste complète des valeurs
+        return super().create(vals_list)
 
     @api.depends('checkin_date', 'checkout_date')
     def _compute_duration(self):
@@ -148,12 +175,18 @@ class HotelReservation(models.Model):
     @api.depends('amount_paid', 'total_amount')
     def _compute_payment_status(self):
         for reservation in self:
-            if reservation.amount_paid >= reservation.total_amount:
-                reservation.payment_status = 'paid'
-            elif reservation.amount_paid > 0:
-                reservation.payment_status = 'partial'
+            reservation.is_fully_paid = reservation.amount_paid >= reservation.total_amount
+
+    @api.depends('folio_id.payment_ids.amount', 'folio_id.payment_ids.state')
+    def _compute_deposit_paid(self):
+        for reservation in self:
+            if reservation.folio_id:
+                paid_amount = sum(payment.amount 
+                               for payment in reservation.folio_id.payment_ids 
+                               if payment.state in ['paid', 'in_process'])
+                reservation.deposit_paid = paid_amount
             else:
-                reservation.payment_status = 'unpaid'
+                reservation.deposit_paid = 0.0
 
     @api.constrains('room_id', 'checkin_date', 'checkout_date')
     def _check_room_availability(self):

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Vue Configuration Paramètres Hôtel -->
+        <record id="res_config_settings_view_form_hotel" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.hotel</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <!-- Injecter directement dans le form -->
+                <xpath expr="//form" position="inside">
+                    <app string="Gestion Hôtelière" name="hotel_management_custom">
+                        <block title="Gestion des Réservations et Paiements">
+                            <setting id="hotel_deposit_required_setting" 
+                                     help="Exiger le paiement d'un acompte avant de confirmer une réservation">
+                                <field name="hotel_deposit_required"/>
+                                <div class="content-group" invisible="not hotel_deposit_required">
+                                    <div class="row mt16">
+                                        <label for="hotel_deposit_percentage" 
+                                               string="Pourcentage d'acompte" 
+                                               class="col-3 o_light_label"/>
+                                        <field name="hotel_deposit_percentage" class="oe_inline"/>
+                                        <span> %</span>
+                                    </div>
+                                    <div class="text-muted mt8">
+                                        Exemple : 30% = le client doit payer 30% du montant total en acompte
+                                    </div>
+                                </div>
+                            </setting>
+                            
+                            <setting id="hotel_allow_full_prepayment_setting"
+                                     help="Permettre aux clients de payer la totalité du séjour à l'avance">
+                                <field name="hotel_allow_full_prepayment"/>
+                            </setting>
+                        </block>
+
+                        <block title="Informations">
+                            <div class="alert alert-info mt16" role="alert">
+                                <h4 class="alert-heading"><i class="fa fa-info-circle"/> Comment ça fonctionne ?</h4>
+                                <ul>
+                                    <li><strong>Acompte Obligatoire :</strong> Si activé, les réservations ne pourront être confirmées que si l'acompte est payé.</li>
+                                    <li><strong>Pourcentage d'Acompte :</strong> Définit automatiquement le montant d'acompte à demander (par exemple 30% du total).</li>
+                                    <li><strong>Paiement Total Anticipé :</strong> Permet aux clients de payer 100% du séjour lors de la réservation.</li>
+                                    <li><strong>Flexibilité :</strong> Les réceptionnistes peuvent toujours ajuster manuellement le montant d'acompte pour chaque réservation.</li>
+                                </ul>
+                            </div>
+                        </block>
+                    </app>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Action pour ouvrir les paramètres -->
+        <record id="action_hotel_config_settings" model="ir.actions.act_window">
+            <field name="name">Paramètres Hôtel</field>
+            <field name="res_model">res.config.settings</field>
+            <field name="view_mode">form</field>
+            <field name="target">inline</field>
+            <field name="context">{'module': 'hotel_management_custom'}</field>
+        </record>
+
+        <!-- Menu Paramètres -->
+        <menuitem id="menu_hotel_config_settings"
+                  name="Paramètres"
+                  parent="hotel_management_custom.menu_hotel_configuration"
+                  action="action_hotel_config_settings"
+                  sequence="100"
+                  groups="base.group_system"/>
+    </data>
+</odoo>

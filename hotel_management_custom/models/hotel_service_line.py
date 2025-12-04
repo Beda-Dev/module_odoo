@@ -104,8 +104,9 @@ class HotelServiceLine(models.Model):
             return
 
         # Trouver l'emplacement source (stock) et destination (consommation)
-        location_src = self.env.ref('stock.stock_location_stock', raise_if_not_found=False)
-        location_dest = self.env.ref('stock.stock_location_customers', raise_if_not_found=False)
+        StockLocation = self.env['stock.location']
+        location_src = StockLocation.search([('usage', '=', 'internal')], limit=1)
+        location_dest = StockLocation.search([('usage', '=', 'customer')], limit=1)
 
         if not location_src or not location_dest:
             return

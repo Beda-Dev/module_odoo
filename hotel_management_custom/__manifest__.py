@@ -1,6 +1,6 @@
 {
     'name': 'Gestion Hôtelière',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.0.1',
     'category': 'DIGIFAZ',
     'summary': 'Module complet de gestion d\'hôtel avec réservations, check-in/out, nettoyage et facturation',
     'description': """
@@ -19,10 +19,11 @@
         * Rapports et tableaux de bord détaillés
         * Notifications automatiques
 
-
-          Fonctionnalités Comptables:
+        Fonctionnalités Comptables:
         • Intégration complète avec la comptabilité
         • Gestion des acomptes et paiements partiels
+        • Acomptes paramétrables (obligatoire ou non, pourcentage configurable)
+        • Paiements anticipés (partiels ou totaux)
         • Modes de paiement liés à des comptes comptables
         • Facturation automatique et comptabilisation
         • Écritures comptables créées automatiquement
@@ -32,7 +33,7 @@
         • Support Multi-paiement (Espèces, Carte, Chèque, Mobile Money, Virement)
     """,
     'author': 'DIGIFAZ',
-
+    'images': ['static/description/banner.png'], 
     'depends': [
         'base',
         'contacts',
@@ -43,6 +44,8 @@
         'product',
         'sale',
         'portal',
+        'web',
+        'base_setup',
     ],
     'data': [
         'security/hotel_security.xml',
@@ -74,6 +77,7 @@
 
         # Vues - Comptabilité (chargées après les vues de base)
         'views/hotel_accounting_views.xml',
+        'views/hotel_config_settings_views.xml',
 
         'report/hotel_report_views.xml',
         'report/hotel_reservation_report.xml',
