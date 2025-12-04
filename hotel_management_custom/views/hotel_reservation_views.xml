@@ -47,19 +47,35 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <div class="oe_stat_button" name="action_register_payment" type="object" icon="fa-money" context="{'default_reservation_id': id}">
-                            <field name="amount_due" widget="monetary" options="{'widget': 'monetary', 'display_currency': 'currency_id'}" class="oe_stat_value"/>
-                            <span class="oe_stat_text">Montant dû</span>
-                        </div>
-                        <div class="oe_stat_button" name="view_payments" type="object" icon="fa-credit-card">
-                            <field name="deposit_paid" widget="monetary" options="{'widget': 'monetary', 'display_currency': 'currency_id'}" class="oe_stat_value"/>
-                            <span class="oe_stat_text">Acompte payé</span>
-                        </div>
+                        <!-- Montant dû -->
+                        <button name="action_register_advance_payment" 
+                                type="object" 
+                                class="oe_stat_button" 
+                                icon="fa-money"
+                                invisible="state in ['cancelled', 'checkout']"
+                                context="{'default_reservation_id': id}">
+                            <span class="oe_stat_text">Montant dû </span>    
+                            <field name="amount_due" widget="monetary" class="oe_stat_value"/>
+                            
+                        </button>
+                        
+                        <!-- Acompte payé - Visible uniquement si acompte activé -->
+                        <button name="action_request_deposit" 
+                                type="object" 
+                                class="oe_stat_button" 
+                                icon="fa-credit-card"
+                                invisible="not require_deposit or state in ['cancelled', 'checkout']">
+                            <span class="oe_stat_text">Acompte payé </span>
+                            <field name="deposit_paid" widget="monetary" class="oe_stat_value"/>
+                            
+                        </button>
+                        
+                        <!-- Folio -->
                         <button name="action_view_folio" type="object"
                                 class="oe_stat_button" icon="fa-file-text"
                                 invisible="not folio_id">
                             <div class="o_field_widget o_stat_info">
-                                <span class="o_stat_text">Folio</span>
+                                <span class="o_stat_text">Voir Folio</span>
                             </div>
                         </button>
                     </div>
@@ -104,45 +120,55 @@
                     </group>
 
                     <group>
-                        <group string="Paiement et Acompte" invisible="state == 'cancelled'">
-                            <field name="total_amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
-                            <field name="amount_paid" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
-                            <field name="amount_due" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                        <group string="Montants" invisible="state == 'cancelled'">
+                            <field name="total_amount" widget="monetary" readonly="1"/>
+                            <field name="amount_paid" widget="monetary" readonly="1"/>
+                            <field name="amount_due" widget="monetary" readonly="1" class="oe_subtotal_footer_separator"/>
                             <field name="payment_status" widget="badge"/>
                         </group>
-                        <group>
-                            <!-- Afficher uniquement si la configuration le permet -->
-                            <field name="require_deposit" 
-                                   invisible="id == False or state in ['cancelled', 'checkout']"
-                                   readonly="id != False"
-                                   string="Acompte requis"
-                                   options="{'no_edit': [('id', '!=', False)]}"/>
+                        <group string="Configuration">
+                            <!-- Champs invisibles pour stockage -->
+                            <field name="require_deposit" invisible="1"/>
+                            <field name="deposit_amount" invisible="1"/>
+                            <field name="deposit_paid" invisible="1"/>
+                            <field name="allow_full_prepayment" invisible="1"/>
+                            <field name="deposit_percentage" invisible="1"/>
                             
-                            <field name="deposit_amount" 
-                                   invisible="not require_deposit or state == 'cancelled'"
-                                   readonly="id != False"
-                                   string="Montant acpt." 
-                                   class="oe_inline"/>
-                                   
-                            <label for="deposit_amount" 
-                                   string="%" 
-                                   invisible="not require_deposit or state == 'cancelled'"
-                                   class="oe_inline"/>
-                                   
-                            <field name="deposit_paid" 
-                                   widget="monetary" 
-                                   options="{'currency_field': 'currency_id'}" 
-                                   class="oe_inline" 
-                                   invisible="not require_deposit or state == 'cancelled'"
-                                   string="Déjà payé"/>
-                                   
-                            <field name="allow_full_prepayment" 
-                                   invisible="id == False or state in ['cancelled', 'checkout']"
-                                   readonly="id != False"
-                                   string="Paiement total autorisé"
-                                   options="{'no_edit': [('id', '!=', False)]}"/>
-                                   
                             <field name="color" widget="color_picker"/>
+                        </group>
+                    </group>
+
+                    <!-- Section Acompte visible uniquement si activé -->
+                    <group string="Gestion Acompte" 
+                           invisible="not require_deposit or state in ['cancelled', 'checkout']">
+                        <group>
+                            <label for="deposit_amount" string="Acompte requis"/>
+                            <div class="o_row">
+                                <field name="deposit_amount" widget="monetary" class="oe_inline"/>
+                                <span class="oe_inline" invisible="not deposit_percentage">
+                                    (<field name="deposit_percentage" class="oe_inline"/>%)
+                                </span>
+                            </div>
+                            <field name="deposit_paid" widget="monetary" readonly="1"/>
+                            <field name="advance_payment_status" widget="badge"
+                                   decoration-danger="advance_payment_status == 'none'"
+                                   decoration-warning="advance_payment_status == 'partial'"
+                                   decoration-success="advance_payment_status in ['deposit_paid', 'full_paid']"/>
+                        </group>
+                        <group>
+                            <button name="action_request_deposit" 
+                                    type="object" 
+                                    string="Payer Acompte" 
+                                    class="oe_highlight"
+                                    icon="fa-money"
+                                    invisible="deposit_amount &lt;= 0 or deposit_paid &gt;= deposit_amount"/>
+                            
+                            <button name="action_register_advance_payment" 
+                                    type="object" 
+                                    string="Paiement Anticipé" 
+                                    class="btn-secondary"
+                                    icon="fa-credit-card"
+                                    invisible="not allow_full_prepayment or amount_paid &gt;= total_amount"/>
                         </group>
                     </group>
 
@@ -158,26 +184,30 @@
                                     <field name="notes"/>
                                 </list>
                             </field>
-                            <group>
-                                <group>
-                                    <field name="partner_id"/>
-                                    <field name="partner_phone"/>
-                                    <field name="partner_email"/>
-                                </group>
-                                <group>
-                                    <field name="room_id"/>
-                                    <field name="hotel_payment_method_id"/>
-                                    <field name="state"/>
-                                </group>
-                            </group>
-                            <!-- Section Notes et détails supplémentaires -->
                         </page>
+                        
                         <page string="Notes" name="notes">
                             <group>
                                 <field name="notes" placeholder="Notes générales..."/>
                                 <field name="special_requests" placeholder="Demandes spéciales du client..."/>
                             </group>
                         </page>
+                        
+                        <page string="Paiements Anticipés" 
+                              name="advance_payments"
+                              invisible="not require_deposit or not advance_payment_ids">
+                            <field name="advance_payment_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="amount" widget="monetary" sum="Total"/>
+                                    <field name="hotel_payment_method_id"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'paid'"
+                                           decoration-info="state == 'draft'"/>
+                                </list>
+                            </field>
+                        </page>
+                        
                         <page string="Factures" name="invoices" invisible="not invoice_ids">
                             <field name="invoice_ids" readonly="1">
                                 <list>
@@ -232,6 +262,10 @@
                 <filter string="Non Payées" name="unpaid" domain="[('payment_status', '=', 'unpaid')]"/>
                 <filter string="Partiellement Payées" name="partial" domain="[('payment_status', '=', 'partial')]"/>
                 <filter string="Payées" name="paid" domain="[('payment_status', '=', 'paid')]"/>
+                <separator/>
+                <filter string="Avec Acompte" name="with_deposit" domain="[('require_deposit', '=', True)]"/>
+                <filter string="Acompte Non Payé" name="deposit_unpaid" 
+                        domain="[('require_deposit', '=', True), ('deposit_paid', '&lt;', 'deposit_amount')]"/>
                 <group expand="0" string="Grouper Par">
                     <filter string="Client" name="group_partner" context="{'group_by': 'partner_id'}"/>
                     <filter string="Chambre" name="group_room" context="{'group_by': 'room_id'}"/>

@@ -36,7 +36,7 @@
                 <field name="payment_method_line_id"/>
                 <field name="amount"/>
                 <field name="currency_id" column_invisible="1"/>
-                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'posted'"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'paid'"/>
             </list>
         </field>
     </record>

@@ -2,7 +2,6 @@
 <odoo>
     <data>
 
-
         <!-- ============= VUE FOLIO AMÉLIORÉE ============= -->
         <record id="view_hotel_folio_form_accounting" model="ir.ui.view">
             <field name="name">hotel.folio - Comptabilité</field>
@@ -16,7 +15,6 @@
                                    decoration-danger="invoice_status == 'not_invoiced'"
                                    decoration-warning="invoice_status == 'partial'"
                                    decoration-success="invoice_status == 'invoiced'"/>
-                            <field name="deposit_credited" readonly="1"/>
                         </group>
 
                         <group string="Factures">
@@ -47,47 +45,104 @@
             </field>
         </record>
 
-        <!-- ============= VUE RÉSERVATION AMÉLIORÉE ============= -->
+        <!-- ============= VUE RÉSERVATION AMÉLIORÉE (ONGLET COMPTABILITÉ) ============= -->
         <record id="view_hotel_reservation_form_accounting" model="ir.ui.view">
-            <field name="name">hotel.reservation - Acompte</field>
+            <field name="name">hotel.reservation - Comptabilité</field>
             <field name="model">hotel.reservation</field>
             <field name="inherit_id" ref="view_hotel_reservation_form"/>
             <field name="arch" type="xml">
+                <!-- Ajouter l'onglet comptabilité après les notes -->
                 <xpath expr="//page[@name='notes']" position="after">
-                    <page name="accounting" string="Comptabilité" groups="account.group_account_user">
-                        <group string="Gestion Acompte">
+                    <page name="accounting" string="Comptabilité" 
+                          groups="account.group_account_user"
+                          invisible="state == 'cancelled'">
+                        
+                        <!-- Section Acomptes - Visible uniquement si activé -->
+                        <group string="Gestion des Acomptes" 
+                               invisible="not require_deposit">
                             <group>
-                                <field name="deposit_amount" widget="monetary"/>
+                                <field name="deposit_percentage" readonly="1" widget="percentage"/>
+                                <field name="deposit_amount" widget="monetary" readonly="1"/>
                                 <field name="deposit_paid" widget="monetary" readonly="1"/>
                                 <field name="deposit_date" readonly="1"/>
+                                <field name="advance_payment_status" widget="badge"
+                                       decoration-danger="advance_payment_status == 'none'"
+                                       decoration-warning="advance_payment_status == 'partial'"
+                                       decoration-success="advance_payment_status in ['deposit_paid', 'full_paid']"/>
                             </group>
                             <group>
                                 <button name="action_request_deposit" type="object" 
-                                        string="Demander Acompte" class="oe_highlight"
-                                        invisible="deposit_amount &lt;= 0"/>
+                                        string="📝 Demander Acompte" 
+                                        class="oe_highlight"
+                                        invisible="deposit_paid &gt;= deposit_amount or state not in ['draft', 'confirmed']"/>
+                                
+                                <button name="action_register_advance_payment" type="object" 
+                                        string="💳 Paiement Anticipé" 
+                                        class="btn-primary"
+                                        invisible="amount_paid &gt;= total_amount or state not in ['draft', 'confirmed']"/>
                             </group>
                         </group>
 
-                        <group string="Paiements d'Avance">
+                        <!-- Section Paiements d'Avance -->
+                        <group string="Historique des Paiements Anticipés" 
+                               invisible="not advance_payment_ids">
                             <field name="advance_payment_ids" readonly="1" nolabel="1">
                                 <list>
                                     <field name="date"/>
-                                    <field name="amount" widget="monetary"/>
+                                    <field name="amount" widget="monetary" sum="Total"/>
                                     <field name="hotel_payment_method_id"/>
-                                    <field name="state" widget="badge"/>
+                                    <field name="mobile_phone" optional="hide"/>
+                                    <field name="mobile_reference" optional="hide"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'paid'"
+                                           decoration-info="state == 'draft'"/>
+                                    <field name="is_advance_payment" column_invisible="1"/>
                                 </list>
                             </field>
                         </group>
 
+                        <!-- Section Écritures Comptables -->
                         <group string="Écritures Comptables">
                             <field name="accounting_move_ids" readonly="1" nolabel="1">
                                 <list>
                                     <field name="name"/>
                                     <field name="date"/>
-                                    <field name="state" widget="badge"/>
+                                    <field name="journal_id"/>
+                                    <field name="amount_total" widget="monetary"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'paid'"
+                                           decoration-info="state == 'draft'"/>
                                 </list>
                             </field>
                         </group>
+
+                        <!-- Résumé financier -->
+                        <group string="Résumé Financier">
+                            <group>
+                                <label for="total_amount" string="Montant Total"/>
+                                <div>
+                                    <field name="total_amount" widget="monetary" class="oe_inline" readonly="1"/>
+                                </div>
+                                
+                                <label for="deposit_paid" string="Paiements Anticipés" 
+                                       invisible="not require_deposit or not deposit_paid"/>
+                                <div invisible="not require_deposit or not deposit_paid">
+                                    <field name="deposit_paid" widget="monetary" class="oe_inline" readonly="1"/>
+                                </div>
+                            </group>
+                            <group>
+                                <label for="amount_paid" string="Total Payé"/>
+                                <div>
+                                    <field name="amount_paid" widget="monetary" class="oe_inline" readonly="1"/>
+                                </div>
+                                
+                                <label for="amount_due" string="Solde Restant" class="oe_subtotal_footer_separator"/>
+                                <div class="oe_subtotal_footer_separator">
+                                    <field name="amount_due" widget="monetary" class="oe_inline" readonly="1"/>
+                                </div>
+                            </group>
+                        </group>
+
                     </page>
                 </xpath>
             </field>
@@ -125,9 +180,13 @@
                     <field name="checkout_date"/>
                     <field name="amount_total" sum="Total"/>
                     <field name="amount_paid" sum="Total Payé"/>
+                    <field name="advance_paid" sum="Acomptes" optional="hide"/>
                     <field name="amount_due" sum="Total Dû"/>
                     <field name="invoice_count"/>
-                    <field name="state" widget="badge"/>
+                    <field name="payment_count"/>
+                    <field name="state" widget="badge"
+                           decoration-success="state == 'closed'"
+                           decoration-info="state == 'open'"/>
                 </list>
             </field>
         </record>
@@ -137,9 +196,11 @@
             <field name="model">hotel.accounting.report</field>
             <field name="arch" type="xml">
                 <pivot>
-                    <field name="checkin_date" interval="month"/>
-                    <field name="state"/>
+                    <field name="checkin_date" interval="month" type="row"/>
+                    <field name="state" type="col"/>
                     <field name="amount_total" type="measure"/>
+                    <field name="amount_paid" type="measure"/>
+                    <field name="amount_due" type="measure"/>
                 </pivot>
             </field>
         </record>
@@ -148,9 +209,10 @@
             <field name="name">hotel.accounting.report - Graphique</field>
             <field name="model">hotel.accounting.report</field>
             <field name="arch" type="xml">
-                <graph string="Revenus par Mois" type="bar" sample="1">
+                <graph string="Revenus Hôtel" type="bar" sample="1">
                     <field name="checkin_date" interval="month"/>
                     <field name="amount_total" type="measure"/>
+                    <field name="amount_paid" type="measure"/>
                 </graph>
             </field>
         </record>
@@ -163,10 +225,11 @@
             <field name="context">{}</field>
             <field name="help" type="html">
                 <p class="o_view_nocontent_smiling_face">
-                    Rapport Comptable Hôtel
+                    📊 Rapport Comptable Hôtel
                 </p>
                 <p>
-                    Analysez vos réservations, factures et paiements en un coup d'œil.
+                    Analysez vos réservations, factures et paiements en un coup d'œil.<br/>
+                    Ce rapport vous permet de suivre vos revenus et paiements anticipés.
                 </p>
             </field>
         </record>

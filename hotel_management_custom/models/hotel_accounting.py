@@ -118,7 +118,7 @@ class HotelReservation(models.Model):
         for reservation in self:
             paid_amount = 0
             for payment in reservation.advance_payment_ids:
-                if hasattr(payment, 'state') and payment.state == 'posted':
+                if hasattr(payment, 'state') and payment.state == 'paid':
                     paid_amount += payment.amount
             reservation.deposit_paid = paid_amount
 

@@ -49,9 +49,45 @@ class HotelReservation(models.Model):
     # Gestion des acomptes
     require_deposit = fields.Boolean(string='Acompte Requis', default=False)
     deposit_amount = fields.Float(string="Montant de l'acompte", tracking=True)
+    deposit_percentage = fields.Float(
+        string='Pourcentage Acompte (%)',
+        compute='_compute_deposit_percentage',
+        store=True,
+        readonly=False,
+        help='Pourcentage du montant total à demander en acompte'
+    )
     deposit_paid = fields.Float(string='Acompte Payé', compute='_compute_deposit_paid', store=True)
+    deposit_date = fields.Date(string='Date Paiement Acompte', readonly=True)
+    
     allow_full_prepayment = fields.Boolean(string='Paiement Total Autorisé', default=False)
     is_fully_paid = fields.Boolean(string='Totalement Payé', compute='_compute_payment_status', store=True)
+    
+    # Paiements anticipés (incluant acomptes)
+    advance_payment_ids = fields.One2many(
+        'account.payment',
+        'reservation_id',
+        string='Paiements Anticipés',
+        readonly=True,
+        domain=[('is_advance_payment', '=', True)]
+    )
+    
+    # Statut paiement anticipé
+    advance_payment_status = fields.Selection([
+        ('none', 'Aucun Paiement'),
+        ('partial', 'Paiement Partiel'),
+        ('deposit_paid', 'Acompte Payé'),
+        ('full_paid', 'Totalement Payé'),
+    ], string='Statut Paiement Anticipé', compute='_compute_advance_payment_status', store=True)
+    
+    # Écritures comptables liées
+    accounting_move_ids = fields.Many2many(
+        'account.move',
+        'reservation_accounting_move_rel',
+        'reservation_id',
+        'move_id',
+        string='Écritures Comptables',
+        readonly=True
+    )
 
     # Relations
     folio_id = fields.Many2one('hotel.folio', string='Notes de séjour client', readonly=True)
@@ -78,7 +114,6 @@ class HotelReservation(models.Model):
         ('phone', 'Téléphone'),
         ('email', 'Email'),
         ('online', 'En Ligne'),
-        #('walk_in', 'Walk-in'),
     ], string='Canal de Réservation', default='direct')
 
     # Statut de paiement
@@ -106,9 +141,9 @@ class HotelReservation(models.Model):
         # Récupération des paramètres de configuration
         icp = self.env['ir.config_parameter'].sudo()
         # Récupération et conversion sécurisée des paramètres
-        deposit_required = str(icp.get_param('hotel_management_custom.deposit_required', 'False')).lower() == 'true'
-        deposit_percentage = float(icp.get_param('hotel_management_custom.deposit_percentage', '0') or '0')
-        allow_full_prepayment = str(icp.get_param('hotel_management_custom.allow_full_prepayment', 'False')).lower() == 'true'
+        deposit_required = str(icp.get_param('hotel.deposit_required', 'False')).lower() == 'true'
+        deposit_percentage = float(icp.get_param('hotel.deposit_percentage', '0') or '0')
+        allow_full_prepayment = str(icp.get_param('hotel.allow_full_prepayment', 'False')).lower() == 'true'
         
         # Traitement de chaque ensemble de valeurs
         for vals in vals_list:
@@ -119,14 +154,57 @@ class HotelReservation(models.Model):
             # Application des paramètres
             if deposit_required:
                 vals['require_deposit'] = True
-                if 'total_amount' in vals and deposit_percentage > 0:
-                    vals['deposit_amount'] = (vals['total_amount'] * deposit_percentage) / 100
+                # Le deposit_amount sera calculé automatiquement via _compute_deposit_amount
             
             if allow_full_prepayment:
                 vals['allow_full_prepayment'] = True
         
         # Appel à la méthode parente avec la liste complète des valeurs
         return super().create(vals_list)
+
+    @api.depends('total_amount', 'state')
+    def _compute_deposit_percentage(self):
+        """Calculer le pourcentage d'acompte par défaut depuis la configuration"""
+        deposit_percentage = float(self.env['ir.config_parameter'].sudo().get_param(
+            'hotel.deposit_percentage', default='0'
+        ))
+        for reservation in self:
+            if not reservation.deposit_percentage and reservation.require_deposit:
+                reservation.deposit_percentage = deposit_percentage
+
+    @api.depends('total_amount', 'deposit_percentage', 'require_deposit')
+    def _compute_deposit_amount(self):
+        """Calculer l'acompte basé sur le pourcentage si acompte requis"""
+        for reservation in self:
+            if reservation.require_deposit and reservation.deposit_percentage > 0:
+                reservation.deposit_amount = (reservation.total_amount * reservation.deposit_percentage) / 100
+            else:
+                reservation.deposit_amount = 0.0
+
+    @api.depends('advance_payment_ids.amount', 'advance_payment_ids.state')
+    def _compute_deposit_paid(self):
+        """Calculer l'acompte déjà payé"""
+        for reservation in self:
+            paid_amount = 0
+            for payment in reservation.advance_payment_ids:
+                if payment.state == 'paid':  # État corrigé de 'posted' à 'paid'
+                    paid_amount += payment.amount
+            reservation.deposit_paid = paid_amount
+
+    @api.depends('deposit_paid', 'deposit_amount', 'total_amount', 'require_deposit')
+    def _compute_advance_payment_status(self):
+        """Calculer le statut des paiements anticipés"""
+        for reservation in self:
+            if not reservation.require_deposit:
+                reservation.advance_payment_status = 'none'
+            elif reservation.deposit_paid <= 0:
+                reservation.advance_payment_status = 'none'
+            elif reservation.deposit_paid >= reservation.total_amount:
+                reservation.advance_payment_status = 'full_paid'
+            elif reservation.deposit_paid >= reservation.deposit_amount and reservation.deposit_amount > 0:
+                reservation.advance_payment_status = 'deposit_paid'
+            else:
+                reservation.advance_payment_status = 'partial'
 
     @api.depends('checkin_date', 'checkout_date')
     def _compute_duration(self):
@@ -159,13 +237,30 @@ class HotelReservation(models.Model):
 
             reservation.total_amount = total
 
-    @api.depends('folio_id.payment_ids.amount')
+    @api.depends('folio_id.payment_ids.amount', 'folio_id.payment_ids.state', 
+                 'advance_payment_ids.amount', 'advance_payment_ids.state')
     def _compute_amount_paid(self):
+        """Calculer le montant total payé (folio + acomptes)"""
         for reservation in self:
+            folio_payments = 0
+            advance_payments = 0
+            
+            # Paiements sur le folio (après check-in)
             if reservation.folio_id:
-                reservation.amount_paid = sum(reservation.folio_id.payment_ids.mapped('amount'))
-            else:
-                reservation.amount_paid = 0.0
+                folio_payments = sum(
+                    payment.amount 
+                    for payment in reservation.folio_id.payment_ids 
+                    if payment.state == 'paid'  # État corrigé de 'posted' à 'paid'
+                )
+            
+            # Paiements anticipés (avant check-in)
+            advance_payments = sum(
+                payment.amount 
+                for payment in reservation.advance_payment_ids 
+                if payment.state == 'paid'  # État corrigé de 'posted' à 'paid'
+            )
+            
+            reservation.amount_paid = folio_payments + advance_payments
 
     @api.depends('total_amount', 'amount_paid')
     def _compute_amount_due(self):
@@ -175,18 +270,15 @@ class HotelReservation(models.Model):
     @api.depends('amount_paid', 'total_amount')
     def _compute_payment_status(self):
         for reservation in self:
-            reservation.is_fully_paid = reservation.amount_paid >= reservation.total_amount
-
-    @api.depends('folio_id.payment_ids.amount', 'folio_id.payment_ids.state')
-    def _compute_deposit_paid(self):
-        for reservation in self:
-            if reservation.folio_id:
-                paid_amount = sum(payment.amount 
-                               for payment in reservation.folio_id.payment_ids 
-                               if payment.state in ['paid', 'in_process'])
-                reservation.deposit_paid = paid_amount
+            if reservation.amount_paid <= 0:
+                reservation.payment_status = 'unpaid'
+                reservation.is_fully_paid = False
+            elif reservation.amount_paid >= reservation.total_amount:
+                reservation.payment_status = 'paid'
+                reservation.is_fully_paid = True
             else:
-                reservation.deposit_paid = 0.0
+                reservation.payment_status = 'partial'
+                reservation.is_fully_paid = False
 
     @api.constrains('room_id', 'checkin_date', 'checkout_date')
     def _check_room_availability(self):
@@ -218,15 +310,78 @@ class HotelReservation(models.Model):
                     'Le nombre de personnes (%d) dépasse la capacité de la chambre (%d).'
                 ) % (reservation.total_persons, reservation.room_id.capacity))
 
+    def action_request_deposit(self):
+        """Action pour demander un acompte"""
+        self.ensure_one()
+
+        if self.state not in ['draft', 'confirmed']:
+            raise UserError(
+                _('Vous ne pouvez demander un acompte que sur une réservation brouillon ou confirmée.')
+            )
+
+        if not self.deposit_amount or self.deposit_amount <= 0:
+            raise UserError(_('Veuillez définir un montant d\'acompte valide.'))
+
+        return {
+            'name': _('Paiement d\'Acompte - %s') % self.name,
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.payment',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_reservation_id': self.id,
+                'default_partner_id': self.partner_id.id,
+                'default_amount': self.deposit_amount - self.deposit_paid,
+                'default_payment_type': 'inbound',
+                'default_partner_type': 'customer',
+                'default_is_advance_payment': True,
+            },
+        }
+
+    def action_register_advance_payment(self):
+        """Action pour enregistrer un paiement anticipé (partiel ou total)"""
+        self.ensure_one()
+
+        if self.state not in ['draft', 'confirmed']:
+            raise UserError(
+                _('Vous ne pouvez enregistrer un paiement que sur une réservation brouillon ou confirmée.')
+            )
+
+        return {
+            'name': _('Paiement Anticipé - %s') % self.name,
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.payment',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_reservation_id': self.id,
+                'default_partner_id': self.partner_id.id,
+                'default_amount': self.total_amount - self.amount_paid,
+                'default_payment_type': 'inbound',
+                'default_partner_type': 'customer',
+                'default_is_advance_payment': True,
+            },
+        }
+
     def action_confirm(self):
-        """Confirmer la réservation"""
+        """Confirmer la réservation avec vérification de l'acompte si requis"""
         for reservation in self:
+            # Vérifier si l'acompte est obligatoire
+            if reservation.require_deposit and reservation.deposit_amount > 0:
+                deposit_required_param = self.env['ir.config_parameter'].sudo().get_param(
+                    'hotel.deposit_required', default='False'
+                ) == 'True'
+                
+                if deposit_required_param and reservation.deposit_paid < reservation.deposit_amount:
+                    raise UserError(_(
+                        'Un acompte de %s est requis avant de confirmer la réservation. '
+                        'Montant déjà payé : %s'
+                    ) % (reservation.deposit_amount, reservation.deposit_paid))
+        
             if reservation.state != 'draft':
                 raise UserError(_('Seules les réservations en brouillon peuvent être confirmées.'))
 
-            reservation.write({
-                'state': 'confirmed',
-            })
+            reservation.write({'state': 'confirmed'})
             reservation.room_id.write({'status': 'reserved'})
 
             # Créer le folio
