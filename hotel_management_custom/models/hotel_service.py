@@ -58,6 +58,6 @@ class HotelService(models.Model):
             'name': _('Utilisations - %s') % self.name,
             'type': 'ir.actions.act_window',
             'res_model': 'hotel.service.line',
-            'view_mode': 'tree,form',
+            'view_mode': 'list,form',
             'domain': [('service_id', '=', self.id)],
         }

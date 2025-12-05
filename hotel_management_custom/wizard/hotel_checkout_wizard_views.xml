@@ -45,18 +45,18 @@
                         </group>
                         <group>
                             <field name="mobile_phone" 
-                                   invisible="payment_method_id and payment_method_id.payment_type != 'mobile_money'"
+                                   invisible="not payment_method_id or payment_method_id.payment_type != 'mobile_money'"
                                    required="payment_method_id and payment_method_id.require_phone"/>
                             <field name="mobile_reference" 
-                                   invisible="payment_method_id and payment_method_id.payment_type != 'mobile_money'"
+                                   invisible="not payment_method_id or payment_method_id.payment_type != 'mobile_money'"
                                    required="payment_method_id and payment_method_id.require_reference"/>
                             <field name="check_number" 
-                                   invisible="payment_method_id and payment_method_id.payment_type != 'check'"
+                                   invisible="not payment_method_id or payment_method_id.payment_type != 'check'"
                                    required="payment_method_id and payment_method_id.payment_type == 'check'"/>
                             <field name="check_date" 
-                                   invisible="payment_method_id and payment_method_id.payment_type != 'check'"/>
+                                   invisible="not payment_method_id or payment_method_id.payment_type != 'check'"/>
                             <field name="check_bank" 
-                                   invisible="payment_method_id and payment_method_id.payment_type != 'check'"/>
+                                   invisible="not payment_method_id or payment_method_id.payment_type != 'check'"/>
                         </group>
                     </group>
                     

@@ -158,7 +158,8 @@ class HotelCheckoutWizard(models.TransientModel):
             'date': fields.Date.today(),
             'folio_id': self.folio_id.id,
             'reservation_id': self.reservation_id.id,
-            'payment_method_id': self.payment_method_id.id,
+            'hotel_payment_method_id': self.payment_method_id.id,
+            'destination_account_id': self.partner_id.property_account_receivable_id.id,
         }
         
         # Ajouter les informations spécifiques selon le mode de paiement

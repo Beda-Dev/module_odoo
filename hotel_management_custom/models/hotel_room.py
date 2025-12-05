@@ -114,7 +114,7 @@ class HotelRoom(models.Model):
             'name': _('Réservations - %s') % self.name,
             'type': 'ir.actions.act_window',
             'res_model': 'hotel.reservation',
-            'view_mode': 'tree,form,calendar',
+            'view_mode': 'list,form,calendar',
             'domain': [('room_id', '=', self.id)],
             'context': {'default_room_id': self.id},
         }
@@ -126,7 +126,7 @@ class HotelRoom(models.Model):
             'name': _('Nettoyages - %s') % self.name,
             'type': 'ir.actions.act_window',
             'res_model': 'hotel.housekeeping',
-            'view_mode': 'tree,form',
+            'view_mode': 'list,form',
             'domain': [('room_id', '=', self.id)],
             'context': {'default_room_id': self.id},
         }

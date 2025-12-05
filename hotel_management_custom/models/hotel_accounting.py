@@ -266,6 +266,18 @@ class HotelFolio(models.Model):
                 'res_id': existing_draft[0].id,
             }
 
+        # Obtenir le compte de revenu par défaut
+        default_income_account = self.env['account.account'].search([
+            ('account_type', '=', 'income'),
+            ('company_id', '=', self.company_id.id),
+        ], limit=1)
+        
+        if not default_income_account:
+            raise UserError(_(
+                'Aucun compte de revenu trouvé. Veuillez configurer un compte de type "Revenu" '
+                'dans votre plan comptable.'
+            ))
+
         invoice_lines = []
 
         # Ligne hébergement
@@ -280,6 +292,14 @@ class HotelFolio(models.Model):
                     ('type', '=', 'service')
                 ], limit=1)
             
+            
+            # Déterminer le compte à utiliser
+            account_id = False
+            if product and product.property_account_income_id:
+                account_id = product.property_account_income_id.id
+            else:
+                account_id = default_income_account.id
+            
             invoice_lines.append((0, 0, {
                 'name': _('Hébergement - Chambre %s (%d nuits)') % (
                     self.room_id.name,
@@ -289,18 +309,24 @@ class HotelFolio(models.Model):
                 'price_unit': self.room_total / self.reservation_id.duration_days 
                     if self.reservation_id.duration_days else self.room_total,
                 'product_id': product.id if product else False,
-                'account_id': product.property_account_income_id.id if product and product.property_account_income_id else False,
+                'account_id': account_id,
             }))
 
         # Lignes services
         for service_line in self.service_line_ids:
+            # Déterminer le compte à utiliser
+            account_id = False
+            if service_line.service_id.product_id and service_line.service_id.product_id.property_account_income_id:
+                account_id = service_line.service_id.product_id.property_account_income_id.id
+            else:
+                account_id = default_income_account.id
+            
             invoice_lines.append((0, 0, {
                 'name': service_line.service_id.name,
                 'quantity': service_line.quantity,
                 'price_unit': service_line.price_unit,
                 'product_id': service_line.service_id.product_id.id if service_line.service_id.product_id else False,
-                'account_id': service_line.service_id.product_id.property_account_income_id.id 
-                    if service_line.service_id.product_id and service_line.service_id.product_id.property_account_income_id else False,
+                'account_id': account_id,
             }))
 
         # Créer la facture
