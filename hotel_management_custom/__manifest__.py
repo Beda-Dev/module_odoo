@@ -79,9 +79,11 @@
         'views/hotel_accounting_views.xml',
         'views/hotel_config_settings_views.xml',
 
+        # Rapports (doivent être chargés avant les boutons d'impression)
         'report/hotel_report_views.xml',
         'report/hotel_reservation_report.xml',
         'report/hotel_folio_report.xml',
+
 
         'views/hotel_dashboard_views.xml',
     ],

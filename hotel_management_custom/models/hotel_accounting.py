@@ -225,13 +225,13 @@ class HotelFolio(models.Model):
     )
 
     accounting_move_ids = fields.Many2many(
-        'account.move',                      # Modèle lié (les écritures comptables)
-        'folio_accounting_move_rel',         # Nom de la table de relation
-        'folio_id',                          # Champ pour ce modèle dans la table de relation
-        'move_id',                           # Champ pour le modèle lié dans la table de relation
-        string='Écritures Comptables',       # Libellé du champ dans l'interface
-        readonly=True,                       # Lecture seule car gérée par le système
-        help='Écritures comptables liées à ce folio'  # Aide contextuelle
+        'account.move',
+        'folio_accounting_move_rel',
+        'folio_id',
+        'move_id',
+        string='Écritures Comptables',
+        readonly=True,
+        help='Écritures comptables liées à ce folio'
     )
 
     @api.depends('invoice_ids.state')
@@ -266,10 +266,9 @@ class HotelFolio(models.Model):
                 'res_id': existing_draft[0].id,
             }
 
-        # Obtenir le compte de revenu par défaut
+        # CORRECTION: Obtenir le compte de revenu par défaut sans filtrer par company_id
         default_income_account = self.env['account.account'].search([
             ('account_type', '=', 'income'),
-            ('company_id', '=', self.company_id.id),
         ], limit=1)
         
         if not default_income_account:
@@ -291,7 +290,6 @@ class HotelFolio(models.Model):
                 product = self.env['product.product'].search([
                     ('type', '=', 'service')
                 ], limit=1)
-            
             
             # Déterminer le compte à utiliser
             account_id = False
@@ -456,6 +454,11 @@ class AccountPayment(models.Model):
                 payment.reservation_id._compute_deposit_paid()
 
         return result
+
+    def action_print_receipt(self):
+        """Imprimer le reçu de paiement"""
+        self.ensure_one()
+        return self.env.ref('hotel_management_custom.action_report_payment_receipt').report_action(self)
 
 
 class ResConfigSettings(models.TransientModel):
