@@ -92,13 +92,13 @@ class HotelCheckoutWizard(models.TransientModel):
                 'Il reste un solde de %s à payer. Veuillez sélectionner un mode de paiement.'
             ) % total_to_pay)
         
+        # Ajouter les frais de dommages AVANT le paiement
+        if self.damage_cost > 0:
+            self._add_damage_charge()
+        
         # Enregistrer le paiement si nécessaire
         if self.payment_method_id and self.payment_amount > 0:
             self._create_payment()
-        
-        # Ajouter les frais de dommages si nécessaire
-        if self.damage_cost > 0:
-            self._add_damage_charge()
         
         # Mettre à jour la réservation
         self.reservation_id.write({
@@ -136,31 +136,31 @@ class HotelCheckoutWizard(models.TransientModel):
         if not self.folio_id.invoice_ids:
             self.folio_id.action_create_invoice()
         
-        # Retourner une action pour afficher la facture
+        # Retourner une action pour afficher le folio (pas la facture)
         return {
             'type': 'ir.actions.act_window',
-            'name': _('Facture'),
-            'res_model': 'account.move',
-            'res_id': self.folio_id.invoice_ids[0].id if self.folio_id.invoice_ids else False,
+            'name': _('Folio'),
+            'res_model': 'hotel.folio',
+            'res_id': self.folio_id.id,
             'view_mode': 'form',
             'target': 'current',
         }
     
     def _create_payment(self):
-        """Créer un enregistrement de paiement"""
+        """
+        ✅ CORRECTION PRINCIPALE
+        Créer un paiement comptable CORRECT compatible Odoo 18
+        """
         self.ensure_one()
         
-        payment_vals = {
-            'payment_type': 'inbound',
-            'partner_type': 'customer',
-            'partner_id': self.partner_id.id,
-            'amount': self.payment_amount,
-            'date': fields.Date.today(),
-            'folio_id': self.folio_id.id,
-            'reservation_id': self.reservation_id.id,
-            'hotel_payment_method_id': self.payment_method_id.id,
-            'destination_account_id': self.partner_id.property_account_receivable_id.id,
-        }
+        # Utiliser la nouvelle méthode du mode de paiement
+        payment_vals = self.payment_method_id.get_payment_vals(
+            partner_id=self.partner_id.id,
+            amount=self.payment_amount,
+            folio_id=self.folio_id.id,
+            reservation_id=self.reservation_id.id,
+            memo=f"Paiement check-out - {self.folio_id.name}"
+        )
         
         # Ajouter les informations spécifiques selon le mode de paiement
         if self.payment_method_id.payment_type == 'mobile_money':
@@ -175,12 +175,20 @@ class HotelCheckoutWizard(models.TransientModel):
                 'check_bank': self.check_bank,
             })
         
-        # Ajouter le journal si défini
-        if self.payment_method_id.journal_id:
-            payment_vals['journal_id'] = self.payment_method_id.journal_id.id
-        
+        # Créer le paiement
         payment = self.env['account.payment'].create(payment_vals)
+        
+        # ✅ IMPORTANT : Poster le paiement pour créer les écritures comptables
         payment.action_post()
+        
+        # Message de confirmation
+        self.folio_id.message_post(
+            body=_('💰 Paiement de %s enregistré via %s') % (
+                self.payment_amount,
+                self.payment_method_id.name
+            ),
+            subject='Paiement Reçu'
+        )
         
         return payment
     

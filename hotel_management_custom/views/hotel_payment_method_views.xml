@@ -80,6 +80,8 @@
                             <field name="payment_type"/>
                             <field name="mobile_provider" invisible="payment_type != 'mobile_money'"/>
                             <field name="journal_id"/>
+                            <field name="inbound_payment_method_line_ids" invisible="1"/>
+                            <field name="default_payment_method_line_id" required="journal_id" options="{'no_create': True}"/>
                         </group>
                     </group>
 
