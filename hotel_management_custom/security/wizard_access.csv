@@ -1,0 +1,2 @@
+access_hotel_advance_payment_wizard_receptionist,hotel.advance.payment.wizard.receptionist,model_hotel_advance_payment_wizard,hotel_management_custom.group_hotel_receptionist,1,1,1,0
+access_hotel_advance_payment_wizard_manager,hotel.advance.payment.wizard.manager,model_hotel_advance_payment_wizard,hotel_management_custom.group_hotel_manager,1,1,1,1

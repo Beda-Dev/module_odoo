@@ -50,12 +50,15 @@
     'data': [
         'security/hotel_security.xml',
         'security/ir.model.access.csv',
+        'security/wizard_access.csv',
 
         'data/hotel_data.xml',
         'data/hotel_sequence.xml',
         'data/hotel_cron.xml',
         'data/payment_method_data.xml',
         'data/hotel_accounting_data.xml',
+        'data/hotel_proforma_sequence.xml',
+        'data/hotel_proforma_cron.xml',
 
         'views/hotel_room_views.xml',
         'views/hotel_room_type_views.xml',
@@ -72,17 +75,20 @@
 
         'wizard/hotel_checkin_wizard_views.xml',
         'wizard/hotel_checkout_wizard_views.xml',
+        'wizard/hotel_advance_payment_wizard_views.xml',
 
         'views/hotel_menu_views.xml',
 
         # Vues - Comptabilité (chargées après les vues de base)
         'views/hotel_accounting_views.xml',
         'views/hotel_config_settings_views.xml',
+        'views/hotel_proforma_invoice_views.xml',
 
         # Rapports (doivent être chargés avant les boutons d'impression)
         'report/hotel_report_views.xml',
         'report/hotel_reservation_report.xml',
         'report/hotel_folio_report.xml',
+        'report/hotel_proforma_report.xml',
 
 
         'views/hotel_dashboard_views.xml',

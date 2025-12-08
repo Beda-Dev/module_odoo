@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tâche planifiée pour vérifier les devis expirés -->
+    <record id="ir_cron_check_expired_proformas" model="ir.cron">
+        <field name="name">Hôtel: Vérifier les devis expirés</field>
+        <field name="model_id" ref="model_hotel_proforma_invoice"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_expired_proformas()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>

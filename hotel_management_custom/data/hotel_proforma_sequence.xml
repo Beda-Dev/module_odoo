@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Séquence pour les factures pro-forma -->
+    <record id="seq_hotel_proforma_invoice" model="ir.sequence">
+        <field name="name">Facture Pro-Forma Hôtel</field>
+        <field name="code">hotel.proforma.invoice</field>
+        <field name="prefix">PRO-%(year)s-</field>
+        <field name="padding">4</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">1</field>
+        <field name="implementation">standard</field>
+    </record>
+</odoo>

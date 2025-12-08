@@ -34,6 +34,10 @@
         <field name="arch" type="xml">
             <form string="Réservation">
                 <header>
+                    <button name="action_generate_proforma" string="Générer Devis" type="object"
+                            class="btn-primary" invisible="state not in ['draft', 'confirmed']"/>
+                    <button name="action_record_advance_payment" string="Enregistrer Paiement" type="object"
+                            class="btn-success" icon="fa-money" invisible="state not in ['draft', 'confirmed']"/>
                     <button name="action_confirm" string="Confirmer" type="object"
                             class="btn-primary" invisible="state != 'draft'"/>
                     <button name="action_checkin" string="Check-in" type="object"
@@ -80,6 +84,13 @@
                                     <field name="invoice_ids" widget="statinfo" string="Factures"/>
                                 </span>
                             </div>
+                        </button>
+                        
+                        <!-- Devis / Pro-Forma -->
+                        <button name="action_view_proforma" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="not proforma_invoice_ids">
+                            <field name="proforma_count" widget="statinfo" string="Devis"/>
                         </button>
                         
                         <!-- Folio -->

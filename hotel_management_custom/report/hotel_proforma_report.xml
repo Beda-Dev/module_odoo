@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Rapport PDF Facture Pro-Forma -->
+    <record id="action_report_proforma_invoice" model="ir.actions.report">
+        <field name="name">Devis / Facture Pro-Forma</field>
+        <field name="model">hotel.proforma.invoice</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management_custom.report_proforma_invoice_document</field>
+        <field name="report_file">hotel_management_custom.report_proforma_invoice_document</field>
+        <field name="binding_model_id" ref="model_hotel_proforma_invoice"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Devis - %s' % (object.name)</field>
+    </record>
+
+    <!-- Template PDF -->
+    <template id="report_proforma_invoice_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- En-tête -->
+                        <div class="row mt-4 mb-4">
+                            <div class="col-6">
+                                <h2 style="color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px;">
+                                    <strong>DEVIS / FACTURE PRO-FORMA</strong>
+                                </h2>
+                                <p style="margin-top: 10px;">
+                                    <strong>N° :</strong> <span t-field="o.name"/><br/>
+                                    <strong>Date :</strong> <span t-field="o.date_proforma"/><br/>
+                                    <strong>Valable jusqu'au :</strong> 
+                                    <span t-field="o.validity_date" style="color: #e74c3c; font-weight: bold;"/>
+                                </p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <div t-if="o.state == 'accepted'" style="background-color: #27ae60; color: white; padding: 10px; border-radius: 5px; display: inline-block;">
+                                    <i class="fa fa-check-circle"/> DEVIS ACCEPTÉ
+                                </div>
+                                <div t-elif="o.state == 'sent'" style="background-color: #f39c12; color: white; padding: 10px; border-radius: 5px; display: inline-block;">
+                                    <i class="fa fa-paper-plane"/> DEVIS ENVOYÉ
+                                </div>
+                                <div t-elif="o.state == 'expired'" style="background-color: #e74c3c; color: white; padding: 10px; border-radius: 5px; display: inline-block;">
+                                    <i class="fa fa-times-circle"/> DEVIS EXPIRÉ
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informations Client -->
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <div style="background-color: #ecf0f1; padding: 15px; border-left: 4px solid #3498db;">
+                                    <h5 style="color: #2c3e50; margin-bottom: 10px;">
+                                        <i class="fa fa-user"/> CLIENT
+                                    </h5>
+                                    <strong><span t-field="o.partner_id.name"/></strong><br/>
+                                    <span t-if="o.partner_id.street" t-field="o.partner_id.street"/><br/>
+                                    <span t-if="o.partner_id.city">
+                                        <span t-field="o.partner_id.zip"/> <span t-field="o.partner_id.city"/>
+                                    </span><br/>
+                                    <span t-if="o.partner_id.phone">
+                                        <i class="fa fa-phone"/> <span t-field="o.partner_id.phone"/>
+                                    </span><br/>
+                                    <span t-if="o.partner_id.email">
+                                        <i class="fa fa-envelope"/> <span t-field="o.partner_id.email"/>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div style="background-color: #e8f5e9; padding: 15px; border-left: 4px solid #27ae60;">
+                                    <h5 style="color: #2c3e50; margin-bottom: 10px;">
+                                        <i class="fa fa-bed"/> DÉTAILS DU SÉJOUR
+                                    </h5>
+                                    <strong>Réservation :</strong> <span t-field="o.reservation_id.name"/><br/>
+                                    <strong>Chambre :</strong> <span t-field="o.room_id.name"/> 
+                                    (<span t-field="o.room_id.room_type_id.name"/>)<br/>
+                                    <strong>Arrivée :</strong> <span t-field="o.checkin_date" t-options="{'widget': 'date'}"/><br/>
+                                    <strong>Départ :</strong> <span t-field="o.checkout_date" t-options="{'widget': 'date'}"/><br/>
+                                    <strong>Durée :</strong> <span t-field="o.duration_days"/> nuit(s)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tableau des prestations -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-bottom: 15px;">
+                                    <i class="fa fa-list"/> DÉTAIL DES PRESTATIONS
+                                </h5>
+                                <table class="table table-bordered" style="margin-bottom: 0;">
+                                    <thead style="background-color: #34495e; color: white;">
+                                        <tr>
+                                            <th style="width: 60%;">Description</th>
+                                            <th class="text-center" style="width: 15%;">Quantité</th>
+                                            <th class="text-end" style="width: 25%;">Montant</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Hébergement -->
+                                        <tr t-if="o.room_total > 0">
+                                            <td>
+                                                <strong>Hébergement</strong><br/>
+                                                <small style="color: #7f8c8d;">
+                                                    Chambre <span t-field="o.room_id.name"/> 
+                                                    (<span t-field="o.room_id.room_type_id.name"/>)
+                                                </small>
+                                            </td>
+                                            <td class="text-center">
+                                                <span t-field="o.duration_days"/> nuit(s)
+                                            </td>
+                                            <td class="text-end">
+                                                <span t-field="o.room_total" 
+                                                      t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                            </td>
+                                        </tr>
+                                        
+                                        <!-- Services -->
+                                        <t t-if="o.service_total > 0">
+                                            <tr>
+                                                <td>
+                                                    <strong>Services additionnels</strong>
+                                                </td>
+                                                <td class="text-center">-</td>
+                                                <td class="text-end">
+                                                    <span t-field="o.service_total" 
+                                                          t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="background-color: #ecf0f1;">
+                                            <td colspan="2" class="text-end">
+                                                <strong style="font-size: 16px;">MONTANT TOTAL TTC</strong>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong style="font-size: 18px; color: #2c3e50;">
+                                                    <span t-field="o.total_amount" 
+                                                          t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                                </strong>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- CONDITIONS DE PAIEMENT - Affiché uniquement si acompte requis -->
+                        <div class="row mb-4" t-if="o.deposit_required and o.deposit_amount > 0">
+                            <div class="col-12">
+                                <div style="background-color: #fff3cd; border: 2px solid #ffc107; padding: 20px; border-radius: 5px;">
+                                    <h5 style="color: #856404; margin-bottom: 15px;">
+                                        <i class="fa fa-credit-card"/> CONDITIONS DE PAIEMENT
+                                    </h5>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <table class="table table-sm" style="margin-bottom: 0;">
+                                                <tr>
+                                                    <td><strong>Acompte requis (<span t-field="o.deposit_percentage"/>%) :</strong></td>
+                                                    <td class="text-end">
+                                                        <strong style="color: #e74c3c; font-size: 16px;">
+                                                            <span t-field="o.deposit_amount" 
+                                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                                        </strong>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Solde à régler au check-out :</strong></td>
+                                                    <td class="text-end">
+                                                        <strong style="font-size: 16px;">
+                                                            <span t-field="o.balance_amount" 
+                                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                                        </strong>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        <div class="col-6">
+                                            <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 10px;">
+                                                <p style="margin: 0; color: #721c24;">
+                                                    <i class="fa fa-exclamation-triangle"/> 
+                                                    <strong>Important :</strong><br/>
+                                                    L'acompte doit être payé avant le 
+                                                    <strong><span t-field="o.validity_date" t-options="{'widget': 'date'}"/></strong>
+                                                    pour confirmer votre réservation.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Conditions générales -->
+                        <div class="row mb-4" t-if="o.terms_conditions">
+                            <div class="col-12">
+                                <h5 style="color: #2c3e50; border-bottom: 2px solid #95a5a6; padding-bottom: 5px; margin-bottom: 10px;">
+                                    <i class="fa fa-file-text"/> CONDITIONS GÉNÉRALES
+                                </h5>
+                                <div style="font-size: 11px; color: #7f8c8d; white-space: pre-line;">
+                                    <span t-field="o.terms_conditions"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="row mb-4" t-if="o.notes">
+                            <div class="col-12">
+                                <div style="background-color: #e3f2fd; padding: 15px; border-left: 4px solid #2196f3;">
+                                    <h6 style="color: #1976d2; margin-bottom: 10px;">
+                                        <i class="fa fa-sticky-note"/> NOTES
+                                    </h6>
+                                    <p style="margin: 0; white-space: pre-line;">
+                                        <span t-field="o.notes"/>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pied de page -->
+                        <div class="row mt-5">
+                            <div class="col-12 text-center" style="border-top: 2px solid #ecf0f1; padding-top: 15px;">
+                                <p style="color: #95a5a6; font-size: 11px; margin: 0;">
+                                    Merci de votre confiance. Nous nous réjouissons de vous accueillir.<br/>
+                                    Pour toute question, n'hésitez pas à nous contacter.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- Template Email -->
+    <record id="email_template_proforma_invoice" model="mail.template">
+        <field name="name">Envoi Devis / Pro-Forma</field>
+        <field name="model_id" ref="model_hotel_proforma_invoice"/>
+        <field name="subject">Votre devis {{ object.name }} - {{ object.company_id.name }}</field>
+        <field name="email_from">{{ (object.company_id.email or user.email) }}</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <p>Bonjour <strong>{{ object.partner_id.name }}</strong>,</p>
+                
+                <p>Nous vous remercions de l'intérêt que vous portez à notre établissement.</p>
+                
+                <p>Veuillez trouver ci-joint votre devis <strong>{{ object.name }}</strong> pour votre séjour du 
+                <strong>{{ format_date(object.checkin_date) }}</strong> au <strong>{{ format_date(object.checkout_date) }}</strong>.</p>
+                
+                <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #007bff;">Récapitulatif</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li><strong>Chambre :</strong> {{ object.room_id.name }} ({{ object.room_id.room_type_id.name }})</li>
+                        <li><strong>Durée :</strong> {{ object.duration_days }} nuit(s)</li>
+                        <li><strong>Montant total :</strong> {{ format_amount(object.total_amount, object.currency_id) }}</li>
+                        <li t-if="object.deposit_required and object.deposit_amount > 0">
+                            <strong style="color: #dc3545;">Acompte requis :</strong> 
+                            {{ format_amount(object.deposit_amount, object.currency_id) }}
+                        </li>
+                    </ul>
+                </div>
+                
+                <p t-if="object.deposit_required and object.deposit_amount > 0" style="background-color: #fff3cd; padding: 10px; border-radius: 5px;">
+                    <strong>⚠️ Important :</strong> Ce devis est valable jusqu'au <strong>{{ format_date(object.validity_date) }}</strong>. 
+                    Pour confirmer votre réservation, veuillez régler l'acompte avant cette date.
+                </p>
+                
+                <p>Pour toute question ou demande particulière, n'hésitez pas à nous contacter.</p>
+                
+                <p>Cordialement,<br/>
+                <strong>{{ object.company_id.name }}</strong></p>
+            </div>
+        </field>
+        <field name="report_template_ids" eval="[(4, ref('action_report_proforma_invoice'))]"/>
+        <field name="auto_delete" eval="False"/>
+    </record>
+
+</odoo>

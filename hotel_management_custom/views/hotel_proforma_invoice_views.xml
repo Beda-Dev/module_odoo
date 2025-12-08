@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire Facture Pro-Forma -->
+    <record id="view_hotel_proforma_invoice_form" model="ir.ui.view">
+        <field name="name">hotel.proforma.invoice.form</field>
+        <field name="model">hotel.proforma.invoice</field>
+        <field name="arch" type="xml">
+            <form string="Facture Pro-Forma / Devis">
+                <header>
+                    <button name="action_send_by_email" string="Envoyer par Email" type="object"
+                            class="oe_highlight" invisible="state not in ['draft', 'sent']"/>
+                    <button name="action_print_proforma" string="Imprimer" type="object"
+                            class="oe_highlight"/>
+                    <button name="action_mark_accepted" string="Marquer Accepté" type="object"
+                            class="oe_highlight" invisible="state not in ['draft', 'sent']"/>
+                    <button name="action_cancel" string="Annuler" type="object"
+                            invisible="state not in ['draft', 'sent']"/>
+                    <button name="action_set_to_draft" string="Remettre en Brouillon" type="object"
+                            invisible="state not in ['sent', 'cancelled']"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,sent,accepted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_print_proforma" type="object"
+                                class="oe_stat_button" icon="fa-file-pdf-o">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Imprimer</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" options="{'no_create': True}"/>
+                            <field name="reservation_id" options="{'no_create': True}"/>
+                            <field name="room_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="date_proforma"/>
+                            <field name="validity_days"/>
+                            <field name="validity_date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Période de Séjour">
+                            <field name="checkin_date" readonly="1"/>
+                            <field name="checkout_date" readonly="1"/>
+                            <field name="duration_days" readonly="1"/>
+                        </group>
+                        <group string="Montants">
+                            <field name="room_total" widget="monetary" readonly="1"/>
+                            <field name="service_total" widget="monetary" readonly="1"/>
+                            <field name="total_amount" widget="monetary" readonly="1"
+                                   class="oe_subtotal_footer_separator"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="Conditions de Paiement" invisible="not deposit_required">
+                        <group>
+                            <field name="deposit_required" invisible="1"/>
+                            <field name="deposit_percentage" readonly="1"/>
+                            <field name="deposit_amount" widget="monetary" readonly="1"/>
+                            <field name="balance_amount" widget="monetary" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Notes">
+                            <field name="notes" placeholder="Notes internes..."/>
+                        </page>
+                        <page string="Conditions Générales">
+                            <field name="terms_conditions" placeholder="Conditions générales de vente..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vue liste Facture Pro-Forma -->
+    <record id="view_hotel_proforma_invoice_tree" model="ir.ui.view">
+        <field name="name">hotel.proforma.invoice.tree</field>
+        <field name="model">hotel.proforma.invoice</field>
+        <field name="arch" type="xml">
+            <list string="Factures Pro-Forma / Devis" decoration-info="state=='draft'"
+                  decoration-success="state=='accepted'" decoration-muted="state in ['expired','cancelled']">
+                <field name="name"/>
+                <field name="date_proforma"/>
+                <field name="partner_id"/>
+                <field name="reservation_id"/>
+                <field name="room_id"/>
+                <field name="checkin_date"/>
+                <field name="checkout_date"/>
+                <field name="total_amount" widget="monetary"/>
+                <field name="deposit_amount" widget="monetary" optional="hide"/>
+                <field name="validity_date"/>
+                <field name="state" widget="badge"
+                       decoration-info="state=='draft'"
+                       decoration-success="state=='accepted'"
+                       decoration-warning="state=='sent'"
+                       decoration-danger="state=='expired'"/>
+                <field name="currency_id" invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue recherche Facture Pro-Forma -->
+    <record id="view_hotel_proforma_invoice_search" model="ir.ui.view">
+        <field name="name">hotel.proforma.invoice.search</field>
+        <field name="model">hotel.proforma.invoice</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher Devis">
+                <field name="name" string="Numéro"/>
+                <field name="partner_id" string="Client"/>
+                <field name="reservation_id" string="Réservation"/>
+                <field name="room_id" string="Chambre"/>
+                <separator/>
+                <filter string="Brouillon" name="draft" domain="[('state','=','draft')]"/>
+                <filter string="Envoyé" name="sent" domain="[('state','=','sent')]"/>
+                <filter string="Accepté" name="accepted" domain="[('state','=','accepted')]"/>
+                <filter string="Expiré" name="expired" domain="[('state','=','expired')]"/>
+                <separator/>
+                <filter string="Ce mois" name="this_month"
+                        domain="[('date_proforma','&gt;=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d')),
+                                 ('date_proforma','&lt;', (context_today() + relativedelta(months=1, day=1)).strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Grouper par">
+                    <filter string="Client" name="group_partner" context="{'group_by':'partner_id'}"/>
+                    <filter string="État" name="group_state" context="{'group_by':'state'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by':'date_proforma'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action Facture Pro-Forma -->
+    <record id="action_hotel_proforma_invoice" model="ir.actions.act_window">
+        <field name="name">Devis / Factures Pro-Forma</field>
+        <field name="res_model">hotel.proforma.invoice</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_draft': 1, 'search_default_sent': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer un nouveau devis
+            </p>
+            <p>
+                Les devis (factures pro-forma) permettent de présenter une estimation détaillée
+                au client avant la confirmation de la réservation.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Facture Pro-Forma -->
+    <menuitem id="menu_hotel_proforma_invoice"
+              name="Devis / Pro-Forma"
+              parent="menu_hotel_root"
+              action="action_hotel_proforma_invoice"
+              sequence="35"/>
+
+</odoo>

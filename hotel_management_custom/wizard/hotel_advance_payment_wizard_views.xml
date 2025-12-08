@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue formulaire du wizard -->
+    <record id="view_hotel_advance_payment_wizard_form" model="ir.ui.view">
+        <field name="name">hotel.advance.payment.wizard.form</field>
+        <field name="model">hotel.advance.payment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Enregistrer un Paiement">
+                <group>
+                    <group>
+                        <field name="reservation_id" invisible="1"/>
+                        <field name="partner_id"/>
+                        <field name="payment_type" widget="radio"/>
+                        <field name="amount" widget="monetary"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="payment_date"/>
+                    </group>
+                    <group>
+                        <field name="journal_id"/>
+                        <field name="available_payment_method_line_ids" invisible="1"/>
+                        <field name="payment_method_line_id"/>
+                        <field name="payment_reference"/>
+                        <field name="memo"/>
+                    </group>
+                </group>
+                
+                <!-- Informations récapitulatives -->
+                <group string="Récapitulatif">
+                    <group>
+                        <field name="total_amount" widget="monetary"/>
+                        <field name="deposit_paid"/>
+                    </group>
+                    <group>
+                        <field name="show_deposit_info" invisible="1"/>
+                        <field name="deposit_amount" invisible="not show_deposit_info"/>
+                        <field name="remaining_deposit" invisible="not show_deposit_info"/>
+                        <field name="remaining_total"/>
+                    </group>
+                </group>
+                
+                <!-- Warning si montant trop élevé -->
+                <field name="display_amount_warning" invisible="1"/>
+                <div class="alert alert-warning" role="alert" invisible="not display_amount_warning">
+                    <strong>Attention :</strong> Le montant saisi dépasse le solde restant.
+                </div>
+                
+                <footer>
+                    <button name="action_validate_payment" string="Valider le Paiement" 
+                            type="object" class="btn-primary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

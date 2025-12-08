@@ -94,6 +94,84 @@ class HotelReservation(models.Model):
     service_line_ids = fields.One2many('hotel.service.line', 'reservation_id',
                                        string='Services Consommés')
     invoice_ids = fields.Many2many('account.move', string='Factures', readonly=True, copy=False)
+    proforma_invoice_ids = fields.One2many(
+        'hotel.proforma.invoice',
+        'reservation_id',
+        string='Devis / Pro-Forma',
+        readonly=True
+    )
+    proforma_count = fields.Integer(
+        string='Nombre de Devis',
+        compute='_compute_proforma_count'
+    )
+
+    @api.depends('proforma_invoice_ids')
+    def _compute_proforma_count(self):
+        """Compter le nombre de devis"""
+        for reservation in self:
+            reservation.proforma_count = len(reservation.proforma_invoice_ids)
+
+    def action_generate_proforma(self):
+        """Générer une facture pro-forma (devis)"""
+        self.ensure_one()
+        
+        if self.state not in ['draft', 'confirmed']:
+            raise UserError(_('Vous ne pouvez générer un devis que pour une réservation en brouillon ou confirmée.'))
+        
+        # Créer le devis
+        proforma = self.env['hotel.proforma.invoice'].create({
+            'reservation_id': self.id,
+            'partner_id': self.partner_id.id,
+        })
+        
+        # Ouvrir le formulaire du devis
+        return {
+            'name': _('Devis / Facture Pro-Forma'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.proforma.invoice',
+            'view_mode': 'form',
+            'res_id': proforma.id,
+            'target': 'current',
+        }
+
+    def action_view_proforma(self):
+        """Voir les devis liés à la réservation"""
+        self.ensure_one()
+        
+        action = {
+            'name': _('Devis / Factures Pro-Forma'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.proforma.invoice',
+            'domain': [('reservation_id', '=', self.id)],
+        }
+        
+        if len(self.proforma_invoice_ids) == 1:
+            action.update({
+                'view_mode': 'form',
+                'res_id': self.proforma_invoice_ids[0].id,
+            })
+        else:
+            action.update({
+                'view_mode': 'list,form',
+            })
+        
+        return action
+
+    def action_record_advance_payment(self):
+        """Ouvrir le wizard de paiement anticipé"""
+        self.ensure_one()
+        
+        return {
+            'name': _('Enregistrer un Paiement'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.advance.payment.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_reservation_id': self.id,
+                'default_payment_type': 'deposit' if self.require_deposit else 'partial',
+            }
+        }
 
     def action_view_invoices(self):
         """Ouvre la vue des factures liées à la réservation"""
