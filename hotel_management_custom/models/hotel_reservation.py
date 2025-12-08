@@ -282,7 +282,7 @@ class HotelReservation(models.Model):
         for reservation in self:
             paid_amount = 0
             for payment in reservation.advance_payment_ids:
-                if payment.state == 'paid':  # État corrigé de 'posted' à 'paid'
+                if payment.state in ['in_process', 'paid']:
                     paid_amount += payment.amount
             reservation.deposit_paid = paid_amount
 
@@ -345,14 +345,14 @@ class HotelReservation(models.Model):
                 folio_payments = sum(
                     payment.amount 
                     for payment in reservation.folio_id.payment_ids 
-                    if payment.state == 'paid'  # État corrigé de 'posted' à 'paid'
+                    if payment.state in ['in_process', 'paid']
                 )
             
             # Paiements anticipés (avant check-in)
             advance_payments = sum(
                 payment.amount 
                 for payment in reservation.advance_payment_ids 
-                if payment.state == 'paid'  # État corrigé de 'posted' à 'paid'
+                if payment.state in ['in_process', 'paid']
             )
             
             reservation.amount_paid = folio_payments + advance_payments

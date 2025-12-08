@@ -1,84 +1,211 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Vue formulaire Facture Pro-Forma -->
+    <!-- Vue formulaire Facture Pro-Forma - Optimisée Odoo 18 -->
     <record id="view_hotel_proforma_invoice_form" model="ir.ui.view">
         <field name="name">hotel.proforma.invoice.form</field>
         <field name="model">hotel.proforma.invoice</field>
         <field name="arch" type="xml">
-            <form string="Facture Pro-Forma / Devis">
+            <form string="Devis / Facture Pro-Forma" class="o_proforma_invoice_form">
                 <header>
                     <button name="action_send_by_email" string="Envoyer par Email" type="object"
                             class="oe_highlight" invisible="state not in ['draft', 'sent']"/>
-                    <button name="action_print_proforma" string="Imprimer" type="object"
-                            class="oe_highlight"/>
+                    <button name="action_print_proforma" string="Imprimer PDF" type="object"
+                            class="btn-info"/>
                     <button name="action_mark_accepted" string="Marquer Accepté" type="object"
                             class="oe_highlight" invisible="state not in ['draft', 'sent']"/>
                     <button name="action_cancel" string="Annuler" type="object"
-                            invisible="state not in ['draft', 'sent']"/>
+                            class="btn-secondary" invisible="state not in ['draft', 'sent']"/>
                     <button name="action_set_to_draft" string="Remettre en Brouillon" type="object"
-                            invisible="state not in ['sent', 'cancelled']"/>
+                            class="btn-secondary" invisible="state not in ['sent', 'cancelled']"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,sent,accepted"/>
                 </header>
+                
                 <sheet>
+                    <!-- Boutons d'action -->
                     <div class="oe_button_box" name="button_box">
                         <button name="action_print_proforma" type="object"
                                 class="oe_stat_button" icon="fa-file-pdf-o">
                             <div class="o_field_widget o_stat_info">
-                                <span class="o_stat_text">Imprimer</span>
+                                <span class="o_stat_text">PDF</span>
+                            </div>
+                        </button>
+                        <button name="action_send_by_email" type="object"
+                                class="oe_stat_button" icon="fa-envelope-o"
+                                invisible="state not in ['draft', 'sent']">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Email</span>
                             </div>
                         </button>
                     </div>
+                    
+                    <!-- En-tête avec badges d'état -->
                     <div class="oe_title">
                         <h1>
-                            <field name="name" readonly="1"/>
+                            <field name="name" readonly="1" class="text-primary"/>
+                            <span class="badge bg-danger ms-2" invisible="state != 'expired'">
+                                <i class="fa fa-clock-o"/> Expiré
+                            </span>
+                            <span class="badge bg-secondary ms-2" invisible="state != 'cancelled'">
+                                <i class="fa fa-ban"/> Annulé
+                            </span>
+                            <span class="badge bg-success ms-2" invisible="state != 'accepted'">
+                                <i class="fa fa-check"/> Accepté
+                            </span>
                         </h1>
+                        <div class="o_row mt-2">
+                            <span class="badge bg-primary">
+                                <i class="fa fa-calendar"/> <field name="date_proforma" readonly="1"/>
+                            </span>
+                            <span class="badge bg-warning ms-2" invisible="state in ['expired', 'cancelled', 'accepted']">
+                                <i class="fa fa-clock-o"/> Valable jusqu'au <field name="validity_date" readonly="1"/>
+                            </span>
+                        </div>
                     </div>
+
+                    <!-- Section Client et Réservation -->
                     <group>
-                        <group>
-                            <field name="partner_id" options="{'no_create': True}"/>
-                            <field name="reservation_id" options="{'no_create': True}"/>
-                            <field name="room_id" readonly="1"/>
+                        <group string="Informations Client" class="border rounded p-3 bg-light">
+                            <field name="partner_id" options="{'no_create': True}" 
+                                   placeholder="Sélectionner un client..."/>
+                            <label for="reservation_id" string="Réservation"/>
+                            <div class="o_row">
+                                <field name="reservation_id" options="{'no_create': True}" 
+                                       placeholder="Sélectionner une réservation..."
+                                       class="oe_inline"/>
+                            </div>
+                            <field name="room_id" readonly="1" string="Chambre"/>
                         </group>
-                        <group>
-                            <field name="date_proforma"/>
-                            <field name="validity_days"/>
-                            <field name="validity_date"/>
+                        
+                        <group string="Dates et Validité" class="border rounded p-3 bg-light">
+                            <field name="validity_days" widget="integer"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
+
+                    <!-- Section Séjour -->
                     <group>
-                        <group string="Période de Séjour">
-                            <field name="checkin_date" readonly="1"/>
-                            <field name="checkout_date" readonly="1"/>
-                            <field name="duration_days" readonly="1"/>
+                        <group string="Détails du Séjour" class="border rounded p-3 bg-info-subtle">
+                            <label for="checkin_date">
+                                <i class="fa fa-sign-in"/> Arrivée
+                            </label>
+                            <div class="o_row">
+                                <field name="checkin_date" readonly="1"/>
+                                <span class="oe_inline text-muted ms-2">à 14h00</span>
+                            </div>
+                            
+                            <label for="checkout_date">
+                                <i class="fa fa-sign-out"/> Départ
+                            </label>
+                            <div class="o_row">
+                                <field name="checkout_date" readonly="1"/>
+                                <span class="oe_inline text-muted ms-2">à 12h00</span>
+                            </div>
+                            
+                            <label for="duration_days">
+                                <i class="fa fa-moon-o"/> Durée
+                            </label>
+                            <div class="o_row">
+                                <field name="duration_days" readonly="1"/>
+                                <span class="oe_inline text-muted ms-2">nuit(s)</span>
+                            </div>
                         </group>
-                        <group string="Montants">
-                            <field name="room_total" widget="monetary" readonly="1"/>
-                            <field name="service_total" widget="monetary" readonly="1"/>
+                        
+                        <!-- Section Montants -->
+                        <group string="Récapitulatif Financier" class="border rounded p-3 bg-light">
+                            <label for="room_total">
+                                <i class="fa fa-bed"/> Hébergement
+                            </label>
+                            <field name="room_total" widget="monetary" readonly="1" class="fw-bold"/>
+                            
+                            <label for="service_total" invisible="service_total == 0">
+                                <i class="fa fa-cutlery"/> Services
+                            </label>
+                            <field name="service_total" widget="monetary" readonly="1"
+                                   invisible="service_total == 0" class="fw-bold"/>
+                            
+                            <label for="total_amount" class="oe_subtotal_footer_separator fw-bold">
+                                <i class="fa fa-money"/> TOTAL TTC
+                            </label>
                             <field name="total_amount" widget="monetary" readonly="1"
-                                   class="oe_subtotal_footer_separator"/>
+                                   class="oe_subtotal_footer_separator fw-bold text-primary"
+                                   style="font-size: 1.2em;"/>
                             <field name="currency_id" invisible="1"/>
                         </group>
                     </group>
-                    <group string="Conditions de Paiement" invisible="not deposit_required">
+
+                    <!-- Section Acompte - Alerte visuelle -->
+                    <div class="alert alert-warning border-start border-warning border-5" 
+                         role="alert" 
+                         invisible="not deposit_required or deposit_amount == 0">
+                        <h4 class="alert-heading">
+                            <i class="fa fa-credit-card"/> Acompte Requis pour Confirmation
+                        </h4>
                         <group>
-                            <field name="deposit_required" invisible="1"/>
-                            <field name="deposit_percentage" readonly="1"/>
-                            <field name="deposit_amount" widget="monetary" readonly="1"/>
-                            <field name="balance_amount" widget="monetary" readonly="1"/>
+                            <group>
+                                <field name="deposit_required" invisible="1"/>
+                                <label for="deposit_percentage">
+                                    <i class="fa fa-percent"/> Pourcentage
+                                </label>
+                                <div class="o_row">
+                                    <field name="deposit_percentage" readonly="1" class="fw-bold"/>
+                                    <span class="oe_inline">%</span>
+                                </div>
+                                
+                                <label for="deposit_amount">
+                                    <i class="fa fa-money"/> Montant à payer
+                                </label>
+                                <field name="deposit_amount" widget="monetary" readonly="1"
+                                       class="text-danger fw-bold"/>
+                            </group>
+                            <group>
+                                <label for="balance_amount">
+                                    <i class="fa fa-money"/> Solde au check-in
+                                </label>
+                                <field name="balance_amount" widget="monetary" readonly="1"
+                                       class="text-success fw-bold"/>
+                                
+                                <div class="alert alert-info mt-2 mb-0" role="alert">
+                                    <i class="fa fa-info-circle"/> L'acompte doit être réglé avant le 
+                                    <strong><field name="validity_date" readonly="1"/></strong>
+                                </div>
+                            </group>
                         </group>
-                    </group>
+                    </div>
+
+                    <!-- Notebook avec onglets -->
                     <notebook>
-                        <page string="Notes">
-                            <field name="notes" placeholder="Notes internes..."/>
+                        <page string="Notes Internes" name="notes">
+                            <field name="notes" placeholder="Notes internes (non visibles sur le PDF)..."
+                                   class="border rounded p-3"/>
                         </page>
-                        <page string="Conditions Générales">
-                            <field name="terms_conditions" placeholder="Conditions générales de vente..."/>
+                        
+                        <page string="Conditions Générales" name="terms">
+                            <div class="alert alert-info mb-3" role="alert">
+                                <i class="fa fa-info-circle"/> Ces conditions seront affichées sur le PDF du devis
+                            </div>
+                            <field name="terms_conditions" 
+                                   placeholder="Saisissez les conditions générales de vente..."
+                                   class="border rounded p-3"/>
+                        </page>
+                        
+                        <page string="Statistiques" name="stats" groups="base.group_no_one">
+                            <group>
+                                <group string="Dates Système">
+                                    <field name="create_date" readonly="1"/>
+                                    <field name="write_date" readonly="1"/>
+                                </group>
+                                <group string="Utilisateurs">
+                                    <field name="create_uid" readonly="1"/>
+                                    <field name="write_uid" readonly="1"/>
+                                </group>
+                            </group>
                         </page>
                     </notebook>
                 </sheet>
+                
+                <!-- Chatter -->
                 <div class="oe_chatter">
-                    <field name="message_follower_ids"/>
+                    <field name="message_follower_ids" groups="base.group_user"/>
                     <field name="activity_ids"/>
                     <field name="message_ids"/>
                 </div>
@@ -86,66 +213,175 @@
         </field>
     </record>
 
-    <!-- Vue liste Facture Pro-Forma -->
+    <!-- Vue liste améliorée -->
     <record id="view_hotel_proforma_invoice_tree" model="ir.ui.view">
         <field name="name">hotel.proforma.invoice.tree</field>
         <field name="model">hotel.proforma.invoice</field>
         <field name="arch" type="xml">
-            <list string="Factures Pro-Forma / Devis" decoration-info="state=='draft'"
-                  decoration-success="state=='accepted'" decoration-muted="state in ['expired','cancelled']">
-                <field name="name"/>
+            <list string="Devis / Factures Pro-Forma" 
+                  decoration-info="state=='draft'"
+                  decoration-success="state=='accepted'" 
+                  decoration-muted="state in ['expired','cancelled']"
+                  decoration-warning="state=='sent'"
+                  sample="1">
+                <header>
+                    <button name="action_send_by_email" type="object" string="Envoyer Email"/>
+                    <button name="action_print_proforma" type="object" string="Imprimer"/>
+                </header>
+                
+                <field name="name" decoration-bf="1"/>
                 <field name="date_proforma"/>
                 <field name="partner_id"/>
                 <field name="reservation_id"/>
-                <field name="room_id"/>
-                <field name="checkin_date"/>
-                <field name="checkout_date"/>
-                <field name="total_amount" widget="monetary"/>
-                <field name="deposit_amount" widget="monetary" optional="hide"/>
-                <field name="validity_date"/>
+                <field name="room_id" optional="show"/>
+                <field name="checkin_date" optional="show"/>
+                <field name="checkout_date" optional="show"/>
+                <field name="duration_days" optional="hide" string="Nuits"/>
+                <field name="total_amount" widget="monetary" sum="Total" decoration-bf="1"/>
+                <field name="deposit_amount" widget="monetary" optional="hide" 
+                       invisible="deposit_amount == 0"/>
+                <field name="validity_date" 
+                       decoration-danger="validity_date &lt; context_today() and state in ['draft', 'sent']"
+                       decoration-success="validity_date &gt;= context_today() and state in ['draft', 'sent']"/>
                 <field name="state" widget="badge"
                        decoration-info="state=='draft'"
                        decoration-success="state=='accepted'"
                        decoration-warning="state=='sent'"
-                       decoration-danger="state=='expired'"/>
+                       decoration-danger="state=='expired'"
+                       decoration-muted="state=='cancelled'"/>
                 <field name="currency_id" invisible="1"/>
             </list>
         </field>
     </record>
 
-    <!-- Vue recherche Facture Pro-Forma -->
+    <!-- Vue recherche améliorée -->
     <record id="view_hotel_proforma_invoice_search" model="ir.ui.view">
         <field name="name">hotel.proforma.invoice.search</field>
         <field name="model">hotel.proforma.invoice</field>
         <field name="arch" type="xml">
             <search string="Rechercher Devis">
-                <field name="name" string="Numéro"/>
+                <field name="name" string="Numéro" filter_domain="[('name','ilike',self)]"/>
                 <field name="partner_id" string="Client"/>
                 <field name="reservation_id" string="Réservation"/>
                 <field name="room_id" string="Chambre"/>
+                
                 <separator/>
+                
                 <filter string="Brouillon" name="draft" domain="[('state','=','draft')]"/>
                 <filter string="Envoyé" name="sent" domain="[('state','=','sent')]"/>
                 <filter string="Accepté" name="accepted" domain="[('state','=','accepted')]"/>
                 <filter string="Expiré" name="expired" domain="[('state','=','expired')]"/>
+                <filter string="Annulé" name="cancelled" domain="[('state','=','cancelled')]"/>
+                
                 <separator/>
+                
+                <filter string="Avec acompte" name="with_deposit"
+                        domain="[('deposit_amount','&gt;',0)]"/>
+                        
+                <separator/>
+                
                 <filter string="Ce mois" name="this_month"
                         domain="[('date_proforma','&gt;=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d')),
                                  ('date_proforma','&lt;', (context_today() + relativedelta(months=1, day=1)).strftime('%Y-%m-%d'))]"/>
+                                 
+                <filter string="Mois dernier" name="last_month"
+                        domain="[('date_proforma','&gt;=', (context_today() - relativedelta(months=1, day=1)).strftime('%Y-%m-%d')),
+                                 ('date_proforma','&lt;', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d'))]"/>
+                
                 <group expand="0" string="Grouper par">
                     <filter string="Client" name="group_partner" context="{'group_by':'partner_id'}"/>
                     <filter string="État" name="group_state" context="{'group_by':'state'}"/>
                     <filter string="Date" name="group_date" context="{'group_by':'date_proforma'}"/>
+                    <filter string="Mois" name="group_month" context="{'group_by':'date_proforma:month'}"/>
                 </group>
             </search>
         </field>
     </record>
 
-    <!-- Action Facture Pro-Forma -->
+    <!-- Vue Kanban moderne -->
+    <record id="view_hotel_proforma_invoice_kanban" model="ir.ui.view">
+        <field name="name">hotel.proforma.invoice.kanban</field>
+        <field name="model">hotel.proforma.invoice</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile" sample="1">
+                <field name="state"/>
+                <field name="partner_id"/>
+                <field name="room_id"/>
+                <field name="total_amount"/>
+                <field name="validity_date"/>
+                <field name="deposit_amount"/>
+                <field name="currency_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="name"/>
+                                    </strong>
+                                    <br/>
+                                    <span class="text-muted">
+                                        <i class="fa fa-user"/> <field name="partner_id"/>
+                                    </span>
+                                </div>
+                                <span t-attf-class="badge #{
+                                    record.state.raw_value === 'draft' ? 'bg-secondary' :
+                                    record.state.raw_value === 'sent' ? 'bg-warning' :
+                                    record.state.raw_value === 'accepted' ? 'bg-success' :
+                                    record.state.raw_value === 'expired' ? 'bg-danger' :
+                                    'bg-dark'
+                                }">
+                                    <field name="state"/>
+                                </span>
+                            </div>
+                            
+                            <div class="o_kanban_record_body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">Chambre</small><br/>
+                                        <field name="room_id"/>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Check-in</small><br/>
+                                        <field name="checkin_date"/>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <small class="text-muted">Montant</small><br/>
+                                        <strong class="text-primary">
+                                            <field name="total_amount" widget="monetary"/>
+                                        </strong>
+                                    </div>
+                                </div>
+                                <div class="row mt-2" t-if="record.deposit_amount.raw_value > 0">
+                                    <div class="col-12">
+                                        <span class="badge bg-warning">
+                                            Acompte: <field name="deposit_amount" widget="monetary"/>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left">
+                                    <small class="text-muted">
+                                        Valide jusqu'au <field name="validity_date"/>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Action améliorée -->
     <record id="action_hotel_proforma_invoice" model="ir.actions.act_window">
         <field name="name">Devis / Factures Pro-Forma</field>
         <field name="res_model">hotel.proforma.invoice</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="context">{'search_default_draft': 1, 'search_default_sent': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -153,16 +389,15 @@
             </p>
             <p>
                 Les devis (factures pro-forma) permettent de présenter une estimation détaillée
-                au client avant la confirmation de la réservation.
+                avant la confirmation de la réservation.
             </p>
         </field>
     </record>
 
-    <!-- Menu Facture Pro-Forma -->
+    <!-- Menu -->
     <menuitem id="menu_hotel_proforma_invoice"
               name="Devis / Pro-Forma"
               parent="menu_hotel_root"
               action="action_hotel_proforma_invoice"
               sequence="35"/>
-
 </odoo>

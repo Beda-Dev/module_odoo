@@ -249,7 +249,7 @@ class HotelProformaInvoice(models.Model):
             'target': 'new',
             'context': {
                 'default_model': 'hotel.proforma.invoice',
-                'default_res_id': self.id,
+                'default_res_ids': [self.id],  # Mise à jour Odoo 18 : res_id -> res_ids
                 'default_use_template': bool(template),
                 'default_template_id': template.id if template else False,
                 'default_partner_ids': [(6, 0, [self.partner_id.id])],

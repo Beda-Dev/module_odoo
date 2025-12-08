@@ -10,3 +10,4 @@ from . import hotel_housekeeping
 from . import hotel_payment_method
 from . import hotel_accounting
 from . import hotel_proforma_invoice
+from . import hotel_payment_extension

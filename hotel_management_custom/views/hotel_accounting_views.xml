@@ -1,5 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Extension de la vue formulaire des paiements -->
+    <record id="view_account_payment_form_inherit_hotel" model="ir.ui.view">
+        <field name="name">account.payment.form.inherit.hotel</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='memo']" position="after">
+                <field name="reservation_id" readonly="1"/>
+                <field name="is_advance_payment" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Extension de la vue liste des paiements -->
+    <record id="view_account_payment_tree_inherit_hotel" model="ir.ui.view">
+        <field name="name">account.payment.list.inherit.hotel</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_tree"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="reservation_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Extension de la vue recherche des paiements -->
+    <record id="view_account_payment_search_inherit_hotel" model="ir.ui.view">
+        <field name="name">account.payment.search.inherit.hotel</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_search"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="reservation_id"/>
+            </field>
+            <filter name="state_draft" position="after">
+                <separator/>
+                <filter string="Paiements Réservations" name="advance_payments" 
+                        domain="[('is_advance_payment', '=', True)]"/>
+            </filter>
+        </field>
+    </record>
+
     <data>
 
         <!-- ============= VUE FOLIO AMÉLIORÉE ============= -->

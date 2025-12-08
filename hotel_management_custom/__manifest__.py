@@ -50,7 +50,6 @@
     'data': [
         'security/hotel_security.xml',
         'security/ir.model.access.csv',
-        'security/wizard_access.csv',
 
         'data/hotel_data.xml',
         'data/hotel_sequence.xml',

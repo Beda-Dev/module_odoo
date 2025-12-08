@@ -66,7 +66,7 @@ class HotelAdvancePaymentWizard(models.TransientModel):
     payment_reference = fields.Char(string='Référence')
     memo = fields.Char(string='Note')
     
-    # Champs informatifs
+    # Champs informatifs - CORRECTION: Changer Monetary en Float
     deposit_amount = fields.Float(
         related='reservation_id.deposit_amount',
         string='Acompte Requis',
@@ -77,7 +77,7 @@ class HotelAdvancePaymentWizard(models.TransientModel):
         string='Déjà Payé',
         readonly=True
     )
-    total_amount = fields.Monetary(
+    total_amount = fields.Float(  # CORRECTION: Float au lieu de Monetary
         related='reservation_id.total_amount',
         string='Montant Total',
         readonly=True
@@ -147,6 +147,20 @@ class HotelAdvancePaymentWizard(models.TransientModel):
         """Réinitialiser la méthode de paiement"""
         self.payment_method_line_id = False
     
+    @api.constrains('amount')
+    def _check_amount(self):
+        for wizard in self:
+            if wizard.amount <= 0:
+                raise ValidationError(_('Le montant du paiement doit être strictement positif.'))
+            
+            # Utiliser float_compare pour éviter les erreurs d'arrondi
+            # 2 décimales de précision par défaut
+            if wizard.amount > wizard.remaining_total + 0.01:
+                raise ValidationError(_(
+                    'Le montant saisi (%s) est supérieur au solde restant à payer (%s).\n'
+                    'Vous ne pouvez pas encaisser plus que le montant dû.'
+                ) % (wizard.amount, wizard.remaining_total))
+    
     def action_validate_payment(self):
         """Créer le paiement et mettre à jour la réservation"""
         self.ensure_one()
@@ -214,14 +228,12 @@ class HotelAdvancePaymentWizard(models.TransientModel):
                 subject=_("Paiement Reçu")
             )
         
-        # Notification de succès
+        # Notification de succès et fermeture
         return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _('Paiement Enregistré'),
+            'type': 'ir.actions.act_window_close',
+            'effect': {
+                'fadeout': 'slow',
                 'message': _('Paiement de %s enregistré avec succès.') % self.amount,
-                'type': 'success',
-                'sticky': False,
+                'type': 'rainbow_man',
             }
         }
