@@ -88,6 +88,7 @@
         'report/hotel_reservation_report.xml',
         'report/hotel_folio_report.xml',
         'report/hotel_proforma_report.xml',
+        'report/payment_receipt_report.xml',
 
 
         'views/hotel_dashboard_views.xml',

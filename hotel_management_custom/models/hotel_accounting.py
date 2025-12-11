@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 # Fichier: hotel_management_custom/models/hotel_accounting.py
 
+import logging
 from odoo import models, fields, api, _
+
+_logger = logging.getLogger(__name__)
 from odoo.exceptions import UserError, ValidationError
 from datetime import timedelta
 
@@ -233,6 +236,15 @@ class HotelFolio(models.Model):
         readonly=True,
         help='Écritures comptables liées à ce folio'
     )
+    
+    # Paiements effectués au check-out
+    checkout_payment_ids = fields.One2many(
+        'account.payment',
+        'folio_id',
+        string='Paiements Check-out',
+        readonly=True,
+        domain=[('payment_category', '=', 'checkout')]
+    )
 
     @api.depends('invoice_ids.state')
     def _compute_invoice_status(self):
@@ -252,21 +264,40 @@ class HotelFolio(models.Model):
                     folio.invoice_status = 'not_invoiced'
 
     def action_create_invoice(self):
-        """Créer une facture client avec comptabilisation"""
+        """Créer et valider une facture avec gestion des paiements"""
         self.ensure_one()
 
         # Vérifier s'il existe une facture en brouillon
         existing_draft = self.invoice_ids.filtered(lambda i: i.state == 'draft')
         if existing_draft:
-            return {
-                'name': _('Facture'),
-                'type': 'ir.actions.act_window',
-                'res_model': 'account.move',
-                'view_mode': 'form',
-                'res_id': existing_draft[0].id,
-            }
+            invoice = existing_draft[0]
+        else:
+            # Créer la facture
+            invoice = self._create_invoice()
+        
+        # Valider la facture
+        self._validate_invoice(invoice)
+        
+        # Gérer les paiements existants
+        self._process_existing_payments(invoice)
+        
+        # Mettre à jour les relations
+        if invoice.id not in self.invoice_ids.ids:
+            self.invoice_ids = [(4, invoice.id)]
+        if invoice.id not in self.accounting_move_ids.ids:
+            self.accounting_move_ids = [(4, invoice.id)]
+        
+        return {
+            'name': _('Facture'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move',
+            'view_mode': 'form',
+            'res_id': invoice.id,
+        }
 
-        # CORRECTION: Obtenir le compte de revenu par défaut sans filtrer par company_id
+    def _create_invoice(self):
+        """Création de la facture avec les lignes appropriées"""
+        # Obtenir le compte de revenu par défaut
         default_income_account = self.env['account.account'].search([
             ('account_type', '=', 'income'),
         ], limit=1)
@@ -292,11 +323,7 @@ class HotelFolio(models.Model):
                 ], limit=1)
             
             # Déterminer le compte à utiliser
-            account_id = False
-            if product and product.property_account_income_id:
-                account_id = product.property_account_income_id.id
-            else:
-                account_id = default_income_account.id
+            account_id = product.property_account_income_id.id if (product and product.property_account_income_id) else default_income_account.id
             
             invoice_lines.append((0, 0, {
                 'name': _('Hébergement - Chambre %s (%d nuits)') % (
@@ -313,11 +340,9 @@ class HotelFolio(models.Model):
         # Lignes services
         for service_line in self.service_line_ids:
             # Déterminer le compte à utiliser
-            account_id = False
+            account_id = default_income_account.id
             if service_line.service_id.product_id and service_line.service_id.product_id.property_account_income_id:
                 account_id = service_line.service_id.product_id.property_account_income_id.id
-            else:
-                account_id = default_income_account.id
             
             invoice_lines.append((0, 0, {
                 'name': service_line.service_id.name,
@@ -328,34 +353,79 @@ class HotelFolio(models.Model):
             }))
 
         # Créer la facture
-        invoice = self.env['account.move'].create({
+        return self.env['account.move'].create({
             'move_type': 'out_invoice',
             'partner_id': self.partner_id.id,
             'invoice_date': fields.Date.today(),
             'invoice_line_ids': invoice_lines,
             'ref': self.name,
             'narration': _('Folio: %s\nChambre: %s\nDu %s au %s') % (
-                self.name,
-                self.room_id.name,
-                self.checkin_date,
-                self.checkout_date,
+                self.name, self.room_id.name, self.checkin_date, self.checkout_date,
             ),
         })
 
-        self.invoice_ids = [(4, invoice.id)]
-        self.accounting_move_ids = [(4, invoice.id)]
+    def _validate_invoice(self, invoice):
+        """Validation de la facture avec gestion des erreurs"""
+        if invoice.state == 'posted':
+            return True
+            
+        try:
+            invoice.with_context(
+                check_move_validity=False,
+                force_company=self.company_id.id
+            ).action_post()
+            self.message_post(body=_('Facture validée: %s') % invoice.name)
+            return True
+        except Exception as e:
+            _logger.error("Erreur validation facture %s: %s", invoice.name, str(e))
+            self.message_post(
+                body=_('Erreur de validation: %s') % str(e),
+                message_type='comment',
+                subtype_xmlid='mail.mt_comment',
+            )
+            raise UserError(_("Impossible de valider la facture: %s") % str(e))
 
-        # Marquer les acomptes comme crédités
-        if self.reservation_id.advance_payment_ids and not self.deposit_credited:
-            self.deposit_credited = True
+    def _process_existing_payments(self, invoice):
+        """Traite les paiements existants (acomptes et paiements au check-out)"""
+        # Rapprocher les acomptes
+        if self.reservation_id.advance_payment_ids:
+            self._reconcile_advance_payments(invoice)
+        
+        # Rapprocher les paiements au check-out
+        if hasattr(self, 'checkout_payment_ids') and self.checkout_payment_ids:
+            self._reconcile_checkout_payments(invoice)
 
-        return {
-            'name': _('Facture'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'account.move',
-            'view_mode': 'form',
-            'res_id': invoice.id,
-        }
+    def _reconcile_advance_payments(self, invoice):
+        """Rapproche les paiements anticipés avec la facture"""
+        for payment in self.reservation_id.advance_payment_ids:
+            self._reconcile_single_payment(payment, invoice, _('Acompte'))
+
+    def _reconcile_checkout_payments(self, invoice):
+        """Rapproche les paiements effectués au check-out avec la facture"""
+        for payment in self.checkout_payment_ids:
+            self._reconcile_single_payment(payment, invoice, _('Paiement check-out'))
+
+    def _reconcile_single_payment(self, payment, invoice, payment_type):
+        """Rapproche un paiement unique avec la facture"""
+        if payment.state != 'posted' or payment.reconciled_invoice_ids:
+            return
+            
+        try:
+            # Rapprocher avec la facture
+            (invoice + payment.move_id).line_ids.filtered(
+                lambda line: line.account_internal_type in ('receivable', 'payable')
+            ).reconcile()
+            
+            self.message_post(
+                body=_('%s rapproché: %s') % (payment_type, payment.name)
+            )
+        except Exception as e:
+            _logger.error("Erreur rapprochement %s %s: %s", payment_type, payment.name, str(e))
+            self.message_post(
+                body=_('Erreur de rapprochement %s %s: %s') % (payment_type, payment.name, str(e)),
+                message_type='comment',
+                subtype_xmlid='mail.mt_comment',
+            )
 
     def action_close_folio(self):
         """Fermer le folio avec validation comptable"""
@@ -408,58 +478,154 @@ class AccountPayment(models.Model):
     """Extension des paiements pour l'hôtel"""
     _inherit = 'account.payment'
 
-    # Relations hôtel
-    folio_id = fields.Many2one('hotel.folio', string='Folio', ondelete='set null')
-    reservation_id = fields.Many2one('hotel.reservation', string='Réservation', ondelete='set null')
-    hotel_payment_method_id = fields.Many2one('hotel.payment.method', string='Mode de Paiement Hôtel')
+    # ============================================================================
+    # ✅ CHAMPS RELATIONS HÔTEL
+    # ============================================================================
+    
+    folio_id = fields.Many2one(
+        'hotel.folio', 
+        string='Folio', 
+        ondelete='set null',
+        index=True
+    )
+    reservation_id = fields.Many2one(
+        'hotel.reservation', 
+        string='Réservation', 
+        ondelete='set null',
+        index=True
+    )
+    hotel_payment_method_id = fields.Many2one(
+        'hotel.payment.method', 
+        string='Mode de Paiement Hôtel',
+        index=True
+    )
 
-    # Infos mobiles money
+    # ✅ INFORMATIONS MOBILE MONEY
     mobile_phone = fields.Char(string='Numéro de Téléphone')
     mobile_reference = fields.Char(string='Référence Transaction')
 
-    # Infos chèque
+    # ✅ INFORMATIONS CHÈQUE
     check_number = fields.Char(string='Numéro de Chèque')
     check_date = fields.Date(string='Date du Chèque')
     check_bank = fields.Char(string='Banque')
 
-    # Type de paiement
+    # ✅ TYPE DE PAIEMENT HÔTELIER
     is_advance_payment = fields.Boolean(
         string='Paiement Anticipé',
         default=False,
-        help='Indique si c\'est un paiement anticipé sur réservation (acompte ou paiement total)'
+        help='Indique si c\'est un paiement anticipé sur réservation (acompte ou paiement total)',
+        index=True
+    )
+    
+    payment_category = fields.Selection([
+        ('deposit', 'Acompte'),
+        ('partial', 'Paiement Partiel'),
+        ('full', 'Paiement Total'),
+        ('checkout', 'Paiement au Check-out'),
+        ('refund', 'Remboursement'),
+    ], string='Catégorie de Paiement')
+    
+    # Lien avec le devis
+    proforma_invoice_id = fields.Many2one(
+        'hotel.proforma.invoice',
+        string='Devis Lié'
     )
 
+    # ============================================================================
+    # ✅ ONCHANGE - AUTOMATISATIONS
+    # ============================================================================
+    
     @api.onchange('hotel_payment_method_id')
     def _onchange_hotel_payment_method_id(self):
-        """Auto-remplir le journal quand on change le mode de paiement"""
-        if self.hotel_payment_method_id and self.hotel_payment_method_id.journal_id:
-            self.journal_id = self.hotel_payment_method_id.journal_id
+        """Auto-remplir le journal et la méthode quand on change le mode de paiement hôtel"""
+        if self.hotel_payment_method_id:
+            if self.hotel_payment_method_id.journal_id:
+                self.journal_id = self.hotel_payment_method_id.journal_id
+            
+            if self.hotel_payment_method_id.default_payment_method_line_id:
+                self.payment_method_line_id = self.hotel_payment_method_id.default_payment_method_line_id
 
+    # ============================================================================
+    # ✅ SURCHARGE action_post - MISE À JOUR AUTOMATIQUE
+    # ============================================================================
+    
     def action_post(self):
-        """Poster le paiement avec validation et mise à jour"""
-        result = super().action_post()
+        """
+        ✅ Poster le paiement avec mise à jour automatique du folio et de la réservation
+        """
+        result = super(AccountPayment, self).action_post()
 
         for payment in self:
-            # Mettre à jour le folio
+            # ✅ METTRE À JOUR LE FOLIO
             if payment.folio_id:
                 payment.folio_id._compute_amounts()
-                # Créer automatiquement la facture si totalement payé
-                if payment.folio_id.amount_due <= 0 and not payment.folio_id.invoice_ids.filtered(lambda i: i.state == 'posted'):
-                    payment.folio_id.action_create_invoice()
+                
+                # Message sur le folio
+                payment.folio_id.message_post(
+                    body=_('💰 Paiement de %.2f enregistré via %s') % (
+                        payment.amount,
+                        payment.hotel_payment_method_id.name if payment.hotel_payment_method_id else 'N/A'
+                    ),
+                    subject='Paiement Reçu'
+                )
 
-            # Marquer date acompte si c'est un paiement d'avance
+            # ✅ METTRE À JOUR LA RÉSERVATION (paiements anticipés)
             if payment.reservation_id and payment.is_advance_payment:
+                # Marquer la date d'acompte si c'est le premier
                 if not payment.reservation_id.deposit_date:
                     payment.reservation_id.deposit_date = fields.Date.today()
+                
+                # Recalculer les montants
                 payment.reservation_id._compute_deposit_paid()
+                payment.reservation_id._compute_amount_paid()
+                
+                # Message sur la réservation
+                payment.reservation_id.message_post(
+                    body=_('💰 Paiement anticipé de %.2f reçu') % payment.amount,
+                    subject='Paiement Anticipé'
+                )
 
         return result
 
+    # ============================================================================
+    # ✅ ACTIONS INTERFACE
+    # ============================================================================
+    
     def action_print_receipt(self):
         """Imprimer le reçu de paiement"""
         self.ensure_one()
+        # Vous pouvez créer un rapport spécifique pour le reçu
         return self.env.ref('hotel_management_custom.action_report_payment_receipt').report_action(self)
-
+    
+    def action_view_related_folio(self):
+        """Voir le folio lié"""
+        self.ensure_one()
+        if not self.folio_id:
+            raise UserError(_('Ce paiement n\'est pas lié à un folio.'))
+        
+        return {
+            'name': _('Folio'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.folio',
+            'res_id': self.folio_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+    
+    def action_view_related_reservation(self):
+        """Voir la réservation liée"""
+        self.ensure_one()
+        if not self.reservation_id:
+            raise UserError(_('Ce paiement n\'est pas lié à une réservation.'))
+        
+        return {
+            'name': _('Réservation'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'hotel.reservation',
+            'res_id': self.reservation_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
 
 class ResConfigSettings(models.TransientModel):
     """Configuration des paramètres hôtel"""

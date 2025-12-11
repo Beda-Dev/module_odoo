@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Custom Paper Format (Must be defined before it's referenced) -->
+    <record id="paperformat_hotel_document" model="report.paperformat">
+        <field name="name">Format Document Hôtel (A4)</field>
+        <field name="default" eval="True"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">20</field>
+        <field name="margin_bottom">20</field>
+        <field name="margin_left">10</field>
+        <field name="margin_right">10</field>
+    </record>
+
+    <!-- Report Action -->
+    <record id="action_report_payment_receipt" model="ir.actions.report">
+        <field name="name">Reçu de Paiement</field>
+        <field name="model">account.payment</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hotel_management_custom.report_payment_receipt</field>
+        <field name="report_file">hotel_management_custom.report_payment_receipt</field>
+        <field name="binding_model_id" ref="model_account_payment"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Reçu de Paiement - %s' % (object.name)</field>
+        <field name="paperformat_id" ref="hotel_management_custom.paperformat_hotel_document"/>
+    </record>
+
+    <!-- Payment Receipt Report Template -->
+    <template id="report_payment_receipt">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <div class="page">
+                    <div class="oe_structure">
+                        <div class="container">
+                            <div class="row mb-4">
+                                <div class="col-6">
+                                    <h2>Reçu de Paiement</h2>
+                                    <p>N°: <span t-field="doc.name"/></p>
+                                    <p>Date: <span t-field="doc.date" t-options='{"widget": "date"}'/></p>
+                                    <p t-if="doc.payment_category">Type: <span t-field="doc.payment_category"/></p>
+                                </div>
+                                <div class="col-6 text-right">
+                                    <div t-if="doc.company_id.logo">
+                                        <img t-att-src="image_data_uri(doc.company_id.logo)" style="max-height: 100px;"/>
+                                    </div>
+                                    <h3 t-field="doc.company_id.name"/>
+                                    <div t-field="doc.company_id.phone"/>
+                                    <div t-field="doc.company_id.email"/>
+                                    <div t-field="doc.company_id.website"/>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-6">
+                                    <h4>Client</h4>
+                                    <div t-field="doc.partner_id"/>
+                                    <div t-field="doc.partner_id.phone"/>
+                                    <div t-field="doc.partner_id.email"/>
+                                </div>
+                                <div class="col-6">
+                                    <h4>Détails de la Réservation</h4>
+                                    <div t-if="doc.reservation_id">
+                                        <div>Réservation: <span t-field="doc.reservation_id.name"/></div>
+                                        <div>Chambre: <span t-field="doc.reservation_id.room_id.name"/></div>
+                                        <div>Arrivée: <span t-field="doc.reservation_id.checkin" t-options='{"widget": "date"}'/></div>
+                                        <div>Départ: <span t-field="doc.reservation_id.checkout" t-options='{"widget": "date"}'/></div>
+                                    </div>
+                                    <div t-else-if="doc.folio_id">
+                                        <div>Folio: <span t-field="doc.folio_id.name"/></div>
+                                        <div>Chambre: <span t-field="doc.folio_id.room_lines[0].product_id.name"/></div>
+                                        <div>Arrivée: <span t-field="doc.folio_id.checkin_date" t-options='{"widget": "date"}'/></div>
+                                        <div>Départ: <span t-field="doc.folio_id.checkout_date" t-options='{"widget": "date"}'/></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h4>Détails du Paiement</h4>
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Mode de Paiement</th>
+                                                <th>Montant</th>
+                                                <th>Référence</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <span t-field="doc.journal_id"/>
+                                                    <t t-if="doc.hotel_payment_method_id">
+                                                        (<span t-field="doc.hotel_payment_method_id"/>)
+                                                    </t>
+                                                </td>
+                                                <td class="text-right">
+                                                    <span t-field="doc.amount" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                </td>
+                                                <td>
+                                                    <span t-field="doc.ref" t-options='{"widget": "char"}'/>
+                                                    <t t-if="doc.check_number">
+                                                        <div>N° Chèque: <span t-field="doc.check_number"/></div>
+                                                        <t t-if="doc.check_bank">
+                                                            <div>Banque: <span t-field="doc.check_bank"/></div>
+                                                        </t>
+                                                        <t t-if="doc.check_date">
+                                                            <div>Date: <span t-field="doc.check_date" t-options='{"widget": "date"}'/></div>
+                                                        </t>
+                                                    </t>
+                                                    <t t-if="doc.mobile_reference">
+                                                        <div>Réf. Mobile: <span t-field="doc.mobile_reference"/></div>
+                                                    </t>
+                                                    <t t-if="doc.hotel_payment_method_id">
+                                                        <div>Méthode: <span t-field="doc.hotel_payment_method_id"/></div>
+                                                    </t>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="2" class="text-right"><strong>Montant Total:</strong></td>
+                                                <td class="text-right">
+                                                    <strong>
+                                                        <span t-field="doc.amount" t-options='{"widget": "monetary", "display_currency": doc.currency_id, "display_currency": doc.company_id.currency_id}'/>
+                                                    </strong>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <p>Merci pour votre confiance. Ce reçu atteste du paiement reçu.</p>
+                                        <p>Pour toute question, veuillez contacter notre service client.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-4">
+                                <div class="col-6">
+                                    <p>Signature Client</p>
+                                    <div style="border-top: 1px solid #000; width: 200px; margin-top: 50px;"></div>
+                                </div>
+                                <div class="col-6 text-right">
+                                    <p>Signature du Responsable</p>
+                                    <div style="border-top: 1px solid #000; width: 200px; margin-left: auto; margin-top: 50px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

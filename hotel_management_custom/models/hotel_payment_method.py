@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# hotel_management_custom/models/hotel_payment_method.py
 
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
@@ -36,17 +37,17 @@ class HotelPaymentMethod(models.Model):
     require_phone = fields.Boolean(string='Téléphone Requis',
                                    help='Exiger un numéro de téléphone (pour mobile money)')
 
-    # ============= CORRECTION PRINCIPALE =============
-    # Journal comptable (OBLIGATOIRE pour Odoo 18)
+    # ============= CONFIGURATION COMPTABLE ODOO 18 =============
+    # Journal comptable (OBLIGATOIRE)
     journal_id = fields.Many2one(
         'account.journal', 
         string='Journal Comptable',
-        required=False,  # ✅ Rendu optionnel pour l'installation
+        required=True,  # ✅ OBLIGATOIRE pour fonctionner
         domain=[('type', 'in', ['cash', 'bank'])],
         help='Journal comptable où les paiements seront enregistrés'
     )
     
-    # Méthode de paiement Odoo (OBLIGATOIRE pour Odoo 18)
+    # Méthodes de paiement disponibles (calculé depuis le journal)
     inbound_payment_method_line_ids = fields.Many2many(
         'account.payment.method.line',
         string='Méthodes de Paiement Disponibles',
@@ -54,14 +55,16 @@ class HotelPaymentMethod(models.Model):
         store=False
     )
     
+    # Méthode de paiement par défaut (OBLIGATOIRE pour Odoo 18)
     default_payment_method_line_id = fields.Many2one(
         'account.payment.method.line',
         string='Méthode de Paiement par Défaut',
+        required=True,  # ✅ OBLIGATOIRE
         domain="[('id', 'in', inbound_payment_method_line_ids)]",
         help='Méthode de paiement utilisée par défaut pour ce mode'
     )
     
-    # Comptes comptables
+    # Comptes comptables (optionnels mais recommandés)
     account_debit_id = fields.Many2one(
         'account.account',
         string='Compte de Débit',
@@ -88,6 +91,10 @@ class HotelPaymentMethod(models.Model):
         ('code_unique', 'UNIQUE(code)', 'Le code du mode de paiement doit être unique.'),
     ]
 
+    # ============================================================================
+    # ✅ CALCULS AUTOMATIQUES
+    # ============================================================================
+    
     @api.depends('journal_id')
     def _compute_payment_method_line_ids(self):
         """Calcule les méthodes de paiement disponibles selon le journal"""
@@ -97,15 +104,36 @@ class HotelPaymentMethod(models.Model):
             else:
                 method.inbound_payment_method_line_ids = False
 
+    def _compute_usage_count(self):
+        for method in self:
+            method.usage_count = self.env['account.payment'].search_count([
+                ('hotel_payment_method_id', '=', method.id)
+            ])
+
+    # ============================================================================
+    # ✅ ONCHANGE - AUTOMATISATIONS
+    # ============================================================================
+    
     @api.onchange('journal_id')
     def _onchange_journal_id(self):
-        """Réinitialise la méthode de paiement par défaut si le journal change"""
+        """Réinitialise et pré-sélectionne la méthode de paiement par défaut"""
         self.default_payment_method_line_id = False
         if self.journal_id:
             available_methods = self.journal_id._get_available_payment_method_lines('inbound')
             if available_methods:
+                # Pré-sélectionner la première méthode disponible
                 self.default_payment_method_line_id = available_methods[0]
 
+    @api.onchange('mobile_provider')
+    def _onchange_mobile_provider(self):
+        if self.mobile_provider:
+            self.payment_type = 'mobile_money'
+            self.require_phone = True
+
+    # ============================================================================
+    # ✅ CONTRAINTES DE VALIDATION
+    # ============================================================================
+    
     @api.constrains('journal_id', 'default_payment_method_line_id')
     def _check_payment_method_line(self):
         """Vérifie que la méthode de paiement appartient bien au journal"""
@@ -118,58 +146,78 @@ class HotelPaymentMethod(models.Model):
 
     @api.constrains('account_debit_id', 'account_credit_id', 'journal_id')
     def _check_accounting_config(self):
-        """Vérifier que la configuration comptable est complète"""
+        """Vérifier que la configuration comptable est cohérente"""
         for method in self:
-            if method.journal_id:
-                if not method.account_debit_id or not method.account_credit_id:
-                    raise ValidationError(_(
-                        'Pour le mode de paiement "%s", vous devez configurer les comptes '
-                        'de débit et crédit si un journal est lié.'
-                    ) % method.name)
+            # Si des comptes sont définis, ils doivent être valides
+            if method.account_debit_id and method.account_debit_id.deprecated:
+                raise ValidationError(_(
+                    'Le compte de débit "%s" est obsolète. Veuillez en sélectionner un autre.'
+                ) % method.account_debit_id.name)
+            
+            if method.account_credit_id and method.account_credit_id.deprecated:
+                raise ValidationError(_(
+                    'Le compte de crédit "%s" est obsolète. Veuillez en sélectionner un autre.'
+                ) % method.account_credit_id.name)
 
-    def _compute_usage_count(self):
-        for method in self:
-            method.usage_count = self.env['account.payment'].search_count([
-                ('hotel_payment_method_id', '=', method.id)
-            ])
-
-    @api.onchange('mobile_provider')
-    def _onchange_mobile_provider(self):
-        if self.mobile_provider:
-            self.payment_type = 'mobile_money'
-            self.require_phone = True
+    # ============================================================================
+    # ✅ MÉTHODE PRINCIPALE : GÉNÉRER LES VALEURS DE PAIEMENT
+    # ============================================================================
     
-    # ============= NOUVELLE MÉTHODE =============
-    def get_payment_vals(self, partner_id, amount, folio_id=None, reservation_id=None, memo=None):
+    def get_payment_vals(self, partner_id, amount, folio_id=None, reservation_id=None, 
+                        memo=None, invoice_id=None):
         """
-        Génère les valeurs correctes pour créer un account.payment
-        Compatible Odoo 18
+        ✅ Génère les valeurs COMPLÈTES pour créer un account.payment compatible Odoo 18
+        
+        Args:
+            partner_id (int): ID du partenaire (client)
+            amount (float): Montant du paiement
+            folio_id (int, optional): ID du folio
+            reservation_id (int, optional): ID de la réservation
+            memo (str, optional): Note/mémo du paiement
+            invoice_id (int, optional): ID de la facture à lettrer
+            
+        Returns:
+            dict: Dictionnaire de valeurs pour créer un account.payment
+            
+        Raises:
+            ValidationError: Si la configuration est incomplète
         """
         self.ensure_one()
         
+        # Vérifications préalables
         if not self.journal_id:
             raise ValidationError(_(
-                'Le mode de paiement "%s" n\'a pas de journal comptable configuré.'
+                'Le mode de paiement "%s" n\'a pas de journal comptable configuré.\n'
+                'Veuillez le configurer dans: Hôtel > Configuration > Modes de Paiement'
             ) % self.name)
         
         if not self.default_payment_method_line_id:
             raise ValidationError(_(
-                'Le mode de paiement "%s" n\'a pas de méthode de paiement par défaut configurée.'
+                'Le mode de paiement "%s" n\'a pas de méthode de paiement par défaut configurée.\n'
+                'Veuillez la configurer dans: Hôtel > Configuration > Modes de Paiement'
             ) % self.name)
         
-        partner = self.env['res.partner'].browse(partner_id)
-        
+        # Construire les valeurs du paiement
         payment_vals = {
+            # ✅ Champs obligatoires Odoo 18
             'payment_type': 'inbound',
             'partner_type': 'customer',
             'partner_id': partner_id,
             'amount': amount,
             'date': fields.Date.today(),
-            'journal_id': self.journal_id.id,  # ✅ OBLIGATOIRE
-            'payment_method_line_id': self.default_payment_method_line_id.id,  # ✅ OBLIGATOIRE Odoo 18
+            'journal_id': self.journal_id.id,
+            'payment_method_line_id': self.default_payment_method_line_id.id,
+            
+            # ✅ Référence et mémo
+            'payment_reference': memo or f"Paiement hôtel - {self.name}",
+            
+            # ✅ Lien avec le module hôtel
             'hotel_payment_method_id': self.id,
-            'memo': memo or f"Paiement hôtel",
         }
+        
+        # 🔥 LIER À LA FACTURE SI FOURNIE (crucial pour le lettrage)
+        if invoice_id:
+            payment_vals['reconciled_invoice_ids'] = [(6, 0, [invoice_id])]
         
         # Ajouter les relations hôtelières
         if folio_id:
@@ -178,3 +226,81 @@ class HotelPaymentMethod(models.Model):
             payment_vals['reservation_id'] = reservation_id
             
         return payment_vals
+
+    # ============================================================================
+    # ✅ MÉTHODE SIMPLIFIÉE : CRÉER ET VALIDER UN PAIEMENT
+    # ============================================================================
+    
+    def create_and_post_payment(self, partner_id, amount, folio_id=None, 
+                               reservation_id=None, memo=None, invoice_id=None,
+                               mobile_phone=None, mobile_reference=None,
+                               check_number=None, check_date=None, check_bank=None):
+        """
+        ✅ Crée un paiement complet et le valide immédiatement
+        
+        Returns:
+            account.payment: Le paiement créé et validé
+        """
+        self.ensure_one()
+        
+        # Obtenir les valeurs de base
+        payment_vals = self.get_payment_vals(
+            partner_id=partner_id,
+            amount=amount,
+            folio_id=folio_id,
+            reservation_id=reservation_id,
+            memo=memo,
+            invoice_id=invoice_id
+        )
+        
+        # Ajouter les informations spécifiques selon le type
+        if self.payment_type == 'mobile_money':
+            payment_vals.update({
+                'mobile_phone': mobile_phone,
+                'mobile_reference': mobile_reference,
+            })
+        elif self.payment_type == 'check':
+            payment_vals.update({
+                'check_number': check_number,
+                'check_date': check_date,
+                'check_bank': check_bank,
+            })
+        
+        # Créer le paiement
+        payment = self.env['account.payment'].create(payment_vals)
+        
+        # ✅ VALIDER IMMÉDIATEMENT (crée les écritures comptables)
+        payment.action_post()
+        
+        return payment
+
+    # ============================================================================
+    # ✅ ACTIONS INTERFACE
+    # ============================================================================
+    
+    def action_view_payments(self):
+        """Voir tous les paiements utilisant ce mode"""
+        self.ensure_one()
+        return {
+            'name': _('Paiements - %s') % self.name,
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.payment',
+            'view_mode': 'list,form',
+            'domain': [('hotel_payment_method_id', '=', self.id)],
+            'context': {'default_hotel_payment_method_id': self.id},
+        }
+
+    def action_configure_journal(self):
+        """Ouvrir la configuration du journal"""
+        self.ensure_one()
+        if not self.journal_id:
+            raise ValidationError(_('Aucun journal n\'est configuré pour ce mode de paiement.'))
+        
+        return {
+            'name': _('Configuration Journal'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.journal',
+            'res_id': self.journal_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
