@@ -5,7 +5,7 @@
     <menuitem id="menu_hotel_root"
               name="Hôtel"
               sequence="10"
-              web_icon="hotel_management_custom,static/description/hotel.png"/>
+              web_icon="hotel_management_custom,static/description/icon.png"/>
     
     <!-- Menu Opérations -->
     <menuitem id="menu_hotel_operations"
