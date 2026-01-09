@@ -3,6 +3,7 @@
 
 import logging
 from odoo import models, fields, api, _
+import traceback
 
 _logger = logging.getLogger(__name__)
 from odoo.exceptions import UserError, ValidationError
@@ -266,19 +267,24 @@ class HotelFolio(models.Model):
     def action_create_invoice(self):
         """Créer et valider une facture avec gestion des paiements"""
         self.ensure_one()
+        _logger.info("[HOTEL_ACCOUNTING] DÉBUT CRÉATION FACTURE - Folio: %s, Client: %s", self.name, self.partner_id.name)
 
         # Vérifier s'il existe une facture en brouillon
         existing_draft = self.invoice_ids.filtered(lambda i: i.state == 'draft')
         if existing_draft:
             invoice = existing_draft[0]
+            _logger.info("[HOTEL_ACCOUNTING] Facture brouillon trouvée: %s", invoice.name)
         else:
             # Créer la facture
             invoice = self._create_invoice()
+            _logger.info("[HOTEL_ACCOUNTING] Nouvelle facture créée: %s", invoice.name)
         
         # Valider la facture
         self._validate_invoice(invoice)
         
         # Gérer les paiements existants
+        _logger.info("[HOTEL_ACCOUNTING] TRAITEMENT DES PAIEMENTS EXISTANTS - Acomptes: %d, Paiements check-out: %d", 
+                    len(self.reservation_id.advance_payment_ids), len(self.checkout_payment_ids))
         self._process_existing_payments(invoice)
         
         # Mettre à jour les relations
@@ -287,6 +293,7 @@ class HotelFolio(models.Model):
         if invoice.id not in self.accounting_move_ids.ids:
             self.accounting_move_ids = [(4, invoice.id)]
         
+        _logger.info("[HOTEL_ACCOUNTING] FIN CRÉATION FACTURE - Facture: %s, État: %s", invoice.name, invoice.state)
         return {
             'name': _('Facture'),
             'type': 'ir.actions.act_window',
@@ -387,45 +394,135 @@ class HotelFolio(models.Model):
 
     def _process_existing_payments(self, invoice):
         """Traite les paiements existants (acomptes et paiements au check-out)"""
+        _logger.info("[HOTEL_ACCOUNTING] DÉBUT TRAITEMENT PAIEMENTS - Facture: %s", invoice.name)
+        
         # Rapprocher les acomptes
         if self.reservation_id.advance_payment_ids:
+            _logger.info("[HOTEL_ACCOUNTING] Traitement de %d acomptes pour la réservation %s", 
+                        len(self.reservation_id.advance_payment_ids), self.reservation_id.name)
             self._reconcile_advance_payments(invoice)
+        else:
+            _logger.info("[HOTEL_ACCOUNTING] Aucun acompte à traiter pour la réservation %s", self.reservation_id.name)
         
         # Rapprocher les paiements au check-out
         if hasattr(self, 'checkout_payment_ids') and self.checkout_payment_ids:
+            _logger.info("[HOTEL_ACCOUNTING] Traitement de %d paiements check-out pour le folio %s", 
+                        len(self.checkout_payment_ids), self.name)
             self._reconcile_checkout_payments(invoice)
+        else:
+            _logger.info("[HOTEL_ACCOUNTING] Aucun paiement check-out à traiter pour le folio %s", self.name)
+        
+        _logger.info("[HOTEL_ACCOUNTING] FIN TRAITEMENT PAIEMENTS - Facture: %s", invoice.name)
 
     def _reconcile_advance_payments(self, invoice):
         """Rapproche les paiements anticipés avec la facture"""
+        _logger.info("[HOTEL_ACCOUNTING] DÉBUT LETTRAGE ACOMPTES - Facture: %s", invoice.name)
+        
         for payment in self.reservation_id.advance_payment_ids:
+            _logger.info("[HOTEL_ACCOUNTING] Tentative lettrage acompte: %s (État: %s, Montant: %s)", 
+                        payment.name, payment.state, payment.amount)
             self._reconcile_single_payment(payment, invoice, _('Acompte'))
+            
+        _logger.info("[HOTEL_ACCOUNTING] FIN LETTRAGE ACOMPTES - Facture: %s", invoice.name)
 
     def _reconcile_checkout_payments(self, invoice):
         """Rapproche les paiements effectués au check-out avec la facture"""
+        _logger.info("[HOTEL_ACCOUNTING] DÉBUT LETTRAGE PAIEMENTS CHECK-OUT - Facture: %s", invoice.name)
+        
         for payment in self.checkout_payment_ids:
+            _logger.info("[HOTEL_ACCOUNTING] Tentative lettrage paiement check-out: %s (État: %s, Montant: %s)", 
+                        payment.name, payment.state, payment.amount)
             self._reconcile_single_payment(payment, invoice, _('Paiement check-out'))
+            
+        _logger.info("[HOTEL_ACCOUNTING] FIN LETTRAGE PAIEMENTS CHECK-OUT - Facture: %s", invoice.name)
 
     def _reconcile_single_payment(self, payment, invoice, payment_type):
         """Rapproche un paiement unique avec la facture"""
-        if payment.state != 'posted' or payment.reconciled_invoice_ids:
-            return
-            
+        _logger.info("[HOTEL_ACCOUNTING] DÉBUT LETTRAGE INDIVIDUEL - Type: %s, Paiement: %s, Facture: %s", 
+                    payment_type, payment.name, invoice.name)
+        
+        # Vérifications initiales
+        if payment.state not in ['posted', 'in_process']:
+            _logger.warning("[HOTEL_ACCOUNTING] ÉCHEC LETTRAGE - Le paiement %s n'est pas dans un état valide (état actuel: %s)", 
+                           payment.name, payment.state)
+            return False
+        
+        # Si le paiement est en in_process, le valider d'abord
+        if payment.state == 'in_process':
+            _logger.info("[HOTEL_ACCOUNTING] Validation du paiement %s (état: in_process)", payment.name)
+            try:
+                payment.action_post()
+                _logger.info("[HOTEL_ACCOUNTING] Paiement %s validé avec succès", payment.name)
+            except Exception as e:
+                _logger.error("[HOTEL_ACCOUNTING] Impossible de valider le paiement %s: %s", payment.name, str(e))
+                return False
+        
+        if payment.reconciled_invoice_ids:
+            _logger.warning("[HOTEL_ACCOUNTING] ÉCHEC LETTRAGE - Le paiement %s est déjà rapproché avec des factures: %s", 
+                           payment.name, [inv.name for inv in payment.reconciled_invoice_ids])
+            return False
+        
+        _logger.info("[HOTEL_ACCOUNTING] Vérifications initiales OK pour le paiement %s", payment.name)
+        
         try:
-            # Rapprocher avec la facture
-            (invoice + payment.move_id).line_ids.filtered(
-                lambda line: line.account_internal_type in ('receivable', 'payable')
-            ).reconcile()
+            # Récupération des lignes à rapprocher
+            invoice_lines = invoice.line_ids.filtered(
+                lambda l: l.account_id.account_type in ('asset_receivable', 'liability_payable')
+            )
+            payment_lines = payment.line_ids.filtered(
+                lambda l: l.account_id.account_type in ('asset_receivable', 'liability_payable')
+            )
+            
+            _logger.info("[HOTEL_ACCOUNTING] Lignes de facture à rapprocher: %s", 
+                        [(l.id, l.account_id.code, l.account_id.name, l.balance) for l in invoice_lines])
+            _logger.info("[HOTEL_ACCOUNTING] Lignes de paiement à rapprocher: %s", 
+                        [(l.id, l.account_id.code, l.account_id.name, l.balance) for l in payment_lines])
+            
+            if not invoice_lines or not payment_lines:
+                _logger.error("[HOTEL_ACCOUNTING] ÉCHEC LETTRAGE - Impossible de trouver des lignes à rapprocher (facture: %s lignes, paiement: %s lignes)", 
+                             len(invoice_lines), len(payment_lines))
+                return False
+            
+            # Rapprochement
+            _logger.info("[HOTEL_ACCOUNTING] Lancement du rapprochement pour %s lignes au total", 
+                        len(invoice_lines + payment_lines))
+            (invoice_lines + payment_lines).reconcile()
+            
+            _logger.info("[HOTEL_ACCOUNTING] LETTRAGE RÉUSSI - Type: %s, Paiement: %s, Facture: %s", 
+                        payment_type, payment.name, invoice.name)
             
             self.message_post(
                 body=_('%s rapproché: %s') % (payment_type, payment.name)
             )
+            return True
+            
         except Exception as e:
-            _logger.error("Erreur rapprochement %s %s: %s", payment_type, payment.name, str(e))
+            _logger.error("""
+[HOTEL_ACCOUNTING] ERREUR CRITIQUE LORS DU RAPPROCHEMENT:
+- Type: %s
+- Paiement: %s (ID: %s)
+- Facture: %s (ID: %s)
+- Erreur: %s
+- Traceback: %s
+            """, 
+            payment_type, 
+            payment.name, 
+            payment.id,
+            invoice.name, 
+            invoice.id,
+            str(e), 
+            traceback.format_exc())
+            
             self.message_post(
                 body=_('Erreur de rapprochement %s %s: %s') % (payment_type, payment.name, str(e)),
                 message_type='comment',
                 subtype_xmlid='mail.mt_comment',
             )
+            return False
+        
+        finally:
+            _logger.info("[HOTEL_ACCOUNTING] FIN LETTRAGE INDIVIDUEL - Type: %s, Paiement: %s", 
+                        payment_type, payment.name)
 
     def action_close_folio(self):
         """Fermer le folio avec validation comptable"""

@@ -212,17 +212,27 @@ class HotelHousekeepingProduct(models.Model):
         self.ensure_one()
 
         # Trouver les emplacements
-        location_src = self.env.ref('stock.stock_location_stock', raise_if_not_found=False)
+        # Utiliser une recherche directe au lieu de ref pour éviter les dépendances manquantes
+        location_src = self.env['stock.location'].search([
+            ('name', 'ilike', 'stock'),
+            ('usage', '=', 'internal'),
+            ('company_id', '=', self.env.company.id)
+        ], limit=1)
         if not location_src:
             # Fallback : chercher un emplacement interne
             location_src = self.env['stock.location'].search([
-                ('usage', '=', 'internal')
+                ('usage', '=', 'internal'),
             ], limit=1)
 
-        location_dest = self.env.ref('stock.stock_location_customers', raise_if_not_found=False)
+        location_dest = self.env['stock.location'].search([
+            ('name', 'ilike', 'customers'),
+            ('usage', '=', 'customer'),
+            ('company_id', '=', self.env.company.id)
+        ], limit=1)
         if not location_dest:
             # Fallback : chercher un emplacement client
             location_dest = self.env['stock.location'].search([
+                ('usage', '=', 'customer'),
                 ('usage', '=', 'customer')
             ], limit=1)
 

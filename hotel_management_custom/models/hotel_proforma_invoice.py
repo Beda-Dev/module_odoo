@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 # Fichier: hotel_management_custom/models/hotel_proforma_invoice.py
 
+import logging
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 from datetime import timedelta
+
+_logger = logging.getLogger(__name__)
 
 
 class HotelProformaInvoice(models.Model):
@@ -233,13 +236,18 @@ class HotelProformaInvoice(models.Model):
     def action_send_by_email(self):
         """Envoyer le devis par email"""
         self.ensure_one()
+        _logger.info("[HOTEL_PROFORMA] DÉBUT ENVOI EMAIL - Devis: %s, Client: %s", self.name, self.partner_id.name)
         
         # Marquer comme envoyé
         if self.state == 'draft':
             self.state = 'sent'
+            _logger.info("[HOTEL_PROFORMA] Devis marqué comme envoyé: %s", self.name)
         
         # Préparer le template email
         template = self.env.ref('hotel_management_custom.email_template_proforma_invoice', raise_if_not_found=False)
+        
+        _logger.info("[HOTEL_PROFORMA] FIN ENVOI EMAIL - Devis: %s, Template trouvé: %s", 
+                    self.name, bool(template))
         
         return {
             'name': _('Envoyer le Devis'),
@@ -259,38 +267,69 @@ class HotelProformaInvoice(models.Model):
 
     def action_mark_accepted(self):
         """Marquer le devis comme accepté"""
+        _logger.info("[HOTEL_PROFORMA] DÉBUT ACCEPTATION DEVIS - Devis: %s, Client: %s", self.name, self.partner_id.name)
+        
         for proforma in self:
             if proforma.state in ['draft', 'sent']:
                 proforma.state = 'accepted'
                 proforma.message_post(body=_('Devis accepté par le client'))
+                _logger.info("[HOTEL_PROFORMA] Devis accepté: %s", proforma.name)
+            else:
+                _logger.warning("[HOTEL_PROFORMA] Impossible d'accepter le devis %s - État actuel: %s", 
+                               proforma.name, proforma.state)
 
     def action_cancel(self):
         """Annuler le devis"""
+        _logger.info("[HOTEL_PROFORMA] DÉBUT ANNULATION DEVIS - Devis: %s, Client: %s", self.name, self.partner_id.name)
+        
         for proforma in self:
             if proforma.state not in ['accepted']:
                 proforma.state = 'cancelled'
                 proforma.message_post(body=_('Devis annulé'))
+                _logger.info("[HOTEL_PROFORMA] Devis annulé: %s", proforma.name)
+            else:
+                _logger.warning("[HOTEL_PROFORMA] Impossible d'annuler le devis %s - Déjà accepté", proforma.name)
 
     def action_set_to_draft(self):
         """Remettre en brouillon"""
+        _logger.info("[HOTEL_PROFORMA] DÉBUT REMISE EN BROUILLON - Devis: %s", self.name)
+        
         for proforma in self:
             if proforma.state in ['sent', 'cancelled']:
                 proforma.state = 'draft'
+                _logger.info("[HOTEL_PROFORMA] Devis remis en brouillon: %s", proforma.name)
+            else:
+                _logger.warning("[HOTEL_PROFORMA] Impossible de remettre en brouillon le devis %s - État actuel: %s", 
+                               proforma.name, proforma.state)
 
     def action_print_proforma(self):
         """Imprimer le devis"""
         self.ensure_one()
-        return self.env.ref('hotel_management_custom.action_report_proforma_invoice').report_action(self)
+        _logger.info("[HOTEL_PROFORMA] DÉBUT IMPRESSION DEVIS - Devis: %s", self.name)
+        
+        try:
+            result = self.env.ref('hotel_management_custom.action_report_proforma_invoice').report_action(self)
+            _logger.info("[HOTEL_PROFORMA] Impression devis réussie: %s", self.name)
+            return result
+        except Exception as e:
+            _logger.error("[HOTEL_PROFORMA] Erreur impression devis %s: %s", self.name, str(e))
+            raise
 
     def _cron_check_expired_proformas(self):
         """Tâche planifiée : Marquer les devis expirés"""
         today = fields.Date.today()
+        _logger.info("[HOTEL_PROFORMA] DÉBUT VÉRIFICATION DEVIS EXPIRÉS - Date du jour: %s", today)
         
         expired_proformas = self.search([
             ('state', 'in', ['draft', 'sent']),
             ('validity_date', '<', today),
         ])
         
+        _logger.info("[HOTEL_PROFORMA] %d devis trouvés à expirer", len(expired_proformas))
+        
         for proforma in expired_proformas:
             proforma.state = 'expired'
             proforma.message_post(body=_('Devis expiré automatiquement'))
+            _logger.info("[HOTEL_PROFORMA] Devis expiré: %s", proforma.name)
+        
+        _logger.info("[HOTEL_PROFORMA] FIN VÉRIFICATION DEVIS EXPIRÉS")

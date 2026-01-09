@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 # hotel_management_custom/wizard/hotel_advance_payment_wizard.py
 
+import logging
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class HotelAdvancePaymentWizard(models.TransientModel):
