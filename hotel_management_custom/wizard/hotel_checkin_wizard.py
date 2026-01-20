@@ -67,6 +67,14 @@ class HotelCheckinWizard(models.TransientModel):
         if not self.identity_verified:
             raise UserError(_('Veuillez vérifier l\'identité du client avant de continuer.'))
         
+        # Créer le folio si il n'existe pas
+        if not self.reservation_id.folio_id:
+            folio = self.env['hotel.folio'].create({
+                'partner_id': self.reservation_id.partner_id.id,
+                'reservation_id': self.reservation_id.id,
+            })
+            self.reservation_id.folio_id = folio
+        
         # Mettre à jour la réservation
         self.reservation_id.write({
             'state': 'checkin',

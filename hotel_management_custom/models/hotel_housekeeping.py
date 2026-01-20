@@ -77,9 +77,9 @@ class HotelHousekeeping(models.Model):
 
     @api.constrains('room_id')
     def _check_room_not_occupied(self):
-        """Vérifier que la chambre n'est pas occupée"""
+        """Vérifier que la chambre n'est pas occupée (sauf pour nettoyage quotidien)"""
         for record in self:
-            if record.room_id.status == 'occupied':
+            if record.room_id.status == 'occupied' and record.cleaning_type != 'daily':
                 raise ValidationError(_(
                     'Impossible de créer un nettoyage pour la chambre %s car elle est actuellement occupée. '
                     'Veuillez d\'abord effectuer le check-out du client.'

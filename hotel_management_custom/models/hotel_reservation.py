@@ -479,13 +479,6 @@ class HotelReservation(models.Model):
             reservation.write({'state': 'confirmed'})
             reservation.room_id.write({'status': 'reserved'})
 
-            # Créer le folio
-            folio = self.env['hotel.folio'].create({
-                'partner_id': reservation.partner_id.id,
-                'reservation_id': reservation.id,
-            })
-            reservation.folio_id = folio
-
             reservation.message_post(body=_('Réservation confirmée'))
 
         return True

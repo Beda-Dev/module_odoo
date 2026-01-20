@@ -26,6 +26,10 @@ class HotelService(models.Model):
     # Prix
     price = fields.Float(string='Prix Unitaire', required=True)
     
+    # Taxes
+    tax_ids = fields.Many2many('account.tax', string='Taxes', 
+                              help='Taxes applicables à ce service')
+    
     # Produit lié (pour la gestion du stock)
     product_id = fields.Many2one('product.product', string='Produit', 
                                  help='Lier à un produit pour gérer le stock')

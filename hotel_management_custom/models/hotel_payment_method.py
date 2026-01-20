@@ -38,16 +38,31 @@ class HotelPaymentMethod(models.Model):
                                    help='Exiger un numéro de téléphone (pour mobile money)')
 
     # ============= CONFIGURATION COMPTABLE ODOO 18 =============
-    # Journal comptable (OBLIGATOIRE)
+    # Journal comptable
     journal_id = fields.Many2one(
         'account.journal', 
         string='Journal Comptable',
-        required=True,  # ✅ OBLIGATOIRE pour fonctionner
+        required=False,  # Changed to False to allow creation without journal
         domain=[('type', 'in', ['cash', 'bank'])],
-        help='Journal comptable où les paiements seront enregistrés'
+        help='Journal comptable où les paiements seront enregistrés',
+        default=lambda self: self._default_journal_id()
     )
     
-    # Méthodes de paiement disponibles (calculé depuis le journal)
+    @api.model
+    def _default_journal_id(self):
+        # Default journal based on payment type, but since payment_type is not set yet, return False
+        return False
+    
+    @api.onchange('payment_type')
+    def _onchange_payment_type(self):
+        if self.payment_type == 'cash':
+            journal = self.env['account.journal'].search([('type', '=', 'cash'), ('company_id', '=', self.env.company.id)], limit=1)
+            self.journal_id = journal
+        elif self.payment_type in ['bank_card', 'check', 'mobile_money', 'bank_transfer']:
+            journal = self.env['account.journal'].search([('type', '=', 'bank'), ('company_id', '=', self.env.company.id)], limit=1)
+            self.journal_id = journal
+        else:
+            self.journal_id = False
     inbound_payment_method_line_ids = fields.Many2many(
         'account.payment.method.line',
         string='Méthodes de Paiement Disponibles',
@@ -59,7 +74,7 @@ class HotelPaymentMethod(models.Model):
     default_payment_method_line_id = fields.Many2one(
         'account.payment.method.line',
         string='Méthode de Paiement par Défaut',
-        required=True,  # ✅ OBLIGATOIRE
+        required=False,  # Changed to False to allow creation without it
         domain="[('id', 'in', inbound_payment_method_line_ids)]",
         help='Méthode de paiement utilisée par défaut pour ce mode'
     )
@@ -74,8 +89,16 @@ class HotelPaymentMethod(models.Model):
     account_credit_id = fields.Many2one(
         'account.account',
         string='Compte de Crédit',
-        help='Compte comptable pour créditer lors du paiement (généralement Client)',
+        help='Compte comptable pour créditer lors du paiement (généralement Client ou Acomptes)',
         domain=[('deprecated', '=', False)]
+    )
+    
+    # Compte spécifique pour les acomptes
+    advance_payment_account_id = fields.Many2one(
+        'account.account',
+        string='Compte Acomptes',
+        help='Compte comptable pour créditer les acomptes (doit être de type liability_current)',
+        domain=[('account_type', '=', 'liability_current'), ('deprecated', '=', False)]
     )
 
     # Disponibilité
@@ -214,6 +237,25 @@ class HotelPaymentMethod(models.Model):
             # ✅ Lien avec le module hôtel
             'hotel_payment_method_id': self.id,
         }
+        
+        # 🔥 CONFIGURATION COMPTABLE SPÉCIFIQUE
+        # Pour les acomptes (pas de facture liée), utiliser le compte d'acompte
+        if invoice_id is None and reservation_id:
+            if self.advance_payment_account_id:
+                payment_vals['destination_account_id'] = self.advance_payment_account_id.id
+                _logger.info("Utilisation du compte d'acompte %s pour le paiement", self.advance_payment_account_id.code)
+            else:
+                # Chercher un compte d'acompte par défaut
+                default_advance_account = self.env['account.account'].search([
+                    ('account_type', '=', 'liability_current'),
+                    ('name', 'ilike', 'acompte'),
+                    ('company_id', '=', self.env.company.id)
+                ], limit=1)
+                if default_advance_account:
+                    payment_vals['destination_account_id'] = default_advance_account.id
+                    _logger.info("Utilisation du compte d'acompte par défaut %s", default_advance_account.code)
+                else:
+                    _logger.warning("Aucun compte d'acompte configuré, utilisation du compte client standard")
         
         # 🔥 LIER À LA FACTURE SI FOURNIE (crucial pour le lettrage)
         if invoice_id:

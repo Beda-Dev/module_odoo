@@ -357,6 +357,7 @@ class HotelFolio(models.Model):
                 'price_unit': service_line.price_unit,
                 'product_id': service_line.service_id.product_id.id if service_line.service_id.product_id else False,
                 'account_id': account_id,
+                'tax_ids': [(6, 0, service_line.service_id.tax_ids.ids)],
             }))
 
         # Créer la facture
@@ -442,14 +443,14 @@ class HotelFolio(models.Model):
                     payment_type, payment.name, invoice.name)
         
         # Vérifications initiales
-        if payment.state not in ['posted', 'in_process']:
+        if payment.state not in ['draft', 'paid']:
             _logger.warning("[HOTEL_ACCOUNTING] ÉCHEC LETTRAGE - Le paiement %s n'est pas dans un état valide (état actuel: %s)", 
                            payment.name, payment.state)
             return False
         
-        # Si le paiement est en in_process, le valider d'abord
-        if payment.state == 'in_process':
-            _logger.info("[HOTEL_ACCOUNTING] Validation du paiement %s (état: in_process)", payment.name)
+        # Si le paiement est en draft, le valider d'abord
+        if payment.state == 'draft':
+            _logger.info("[HOTEL_ACCOUNTING] Validation du paiement %s (état: draft)", payment.name)
             try:
                 payment.action_post()
                 _logger.info("[HOTEL_ACCOUNTING] Paiement %s validé avec succès", payment.name)
@@ -457,9 +458,10 @@ class HotelFolio(models.Model):
                 _logger.error("[HOTEL_ACCOUNTING] Impossible de valider le paiement %s: %s", payment.name, str(e))
                 return False
         
-        if payment.reconciled_invoice_ids:
-            _logger.warning("[HOTEL_ACCOUNTING] ÉCHEC LETTRAGE - Le paiement %s est déjà rapproché avec des factures: %s", 
-                           payment.name, [inv.name for inv in payment.reconciled_invoice_ids])
+        # Vérifier si le paiement est déjà rapproché
+        if payment.is_reconciled:
+            _logger.warning("[HOTEL_ACCOUNTING] ÉCHEC LETTRAGE - Le paiement %s est déjà rapproché", 
+                           payment.name)
             return False
         
         _logger.info("[HOTEL_ACCOUNTING] Vérifications initiales OK pour le paiement %s", payment.name)
@@ -795,11 +797,11 @@ class HotelAccountingReport(models.Model):
                     COALESCE(r.total_amount, 0) - COALESCE(SUM(CASE WHEN sl.id IS NOT NULL THEN sl.price_subtotal ELSE 0 END), 0) as room_total,
                     COALESCE(SUM(CASE WHEN sl.id IS NOT NULL THEN sl.price_subtotal ELSE 0 END), 0) as service_total,
                     COALESCE(r.total_amount, 0) as amount_total,
-                    COALESCE(SUM(CASE WHEN ap.state IN ('posted', 'reconciled') THEN ap.amount ELSE 0 END), 0) as amount_paid,
-                    COALESCE(SUM(CASE WHEN ap.state IN ('posted', 'reconciled') AND ap.is_advance_payment = true THEN ap.amount ELSE 0 END), 0) as advance_paid,
-                    COALESCE(r.total_amount, 0) - COALESCE(SUM(CASE WHEN ap.state IN ('posted', 'reconciled') THEN ap.amount ELSE 0 END), 0) as amount_due,
+                    COALESCE(SUM(CASE WHEN ap.state = 'paid' THEN ap.amount ELSE 0 END), 0) as amount_paid,
+                    COALESCE(SUM(CASE WHEN ap.state = 'paid' AND ap.is_advance_payment = true THEN ap.amount ELSE 0 END), 0) as advance_paid,
+                    COALESCE(r.total_amount, 0) - COALESCE(SUM(CASE WHEN ap.state = 'paid' THEN ap.amount ELSE 0 END), 0) as amount_due,
                     COALESCE(COUNT(DISTINCT inv.id), 0) as invoice_count,
-                    COALESCE(COUNT(DISTINCT CASE WHEN ap.state IN ('posted', 'reconciled') THEN ap.id END), 0) as payment_count,
+                    COALESCE(COUNT(DISTINCT CASE WHEN ap.state = 'paid' THEN ap.id END), 0) as payment_count,
                     f.state
                 FROM hotel_folio f
                 LEFT JOIN hotel_reservation r ON f.reservation_id = r.id
