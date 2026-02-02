@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue liste des options de plat -->
+    <record id="view_lagunes_plat_option_tree" model="ir.ui.view">
+        <field name="name">lagunes.plat.option.tree</field>
+        <field name="model">lagunes.plat.option</field>
+        <field name="type">list</field>
+        <field name="arch" type="xml">
+            <list string="Options de plats" decoration-muted="not active">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="prix_supplementaire" widget="monetary"/>
+                <field name="is_global"/>
+                <field name="active" widget="boolean" optional="show"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Vue formulaire des options de plat -->
+    <record id="view_lagunes_plat_option_form" model="ir.ui.view">
+        <field name="name">lagunes.plat.option.form</field>
+        <field name="model">lagunes.plat.option</field>
+        <field name="arch" type="xml">
+            <form string="Option de plat">
+                <header>
+                    <button name="toggle_active" type="object" string="Activer/Désactiver" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <h1>
+                        <field name="name" class="oe_inline"/>
+                    </h1>
+                    <group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="prix_supplementaire" widget="monetary"/>
+                            <field name="is_global"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <field name="description" placeholder="Description de l'option..."/>
+                    <separator string="Plats concernés"/>
+                    <field name="plat_ids" widget="many2many_tags"/>
+                    <separator string="Notes"/>
+                    <field name="notes" placeholder="Notes supplémentaires..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Vue recherche des options -->
+    <record id="view_lagunes_plat_option_search" model="ir.ui.view">
+        <field name="name">lagunes.plat.option.search</field>
+        <field name="model">lagunes.plat.option</field>
+        <field name="arch" type="xml">
+            <search string="Options">
+                <field name="name" string="Nom"/>
+                <separator/>
+                <filter name="filter_active" string="Actives" domain="[('active', '=', True)]"/>
+                <filter name="filter_inactive" string="Inactives" domain="[('active', '=', False)]"/>
+                <filter name="filter_global" string="Options globales" domain="[('is_global', '=', True)]"/>
+                <filter name="filter_payantes" string="Options payantes" domain="[('prix_supplementaire', '>', 0)]"/>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Action pour voir les options -->
+    <record id="action_lagunes_plat_option" model="ir.actions.act_window">
+        <field name="name">Options de plats</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">lagunes.plat.option</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucune option pour le moment. Créez votre première option.
+            </p>
+            <p>
+                Les options permettent aux clients de personnaliser leurs plats (sans sel, piment à part, sauce à côté, etc.).
+                Vous pouvez ajouter, modifier, désactiver ou supprimer des options à tout moment.
+            </p>
+        </field>
+    </record>
+
+</odoo>

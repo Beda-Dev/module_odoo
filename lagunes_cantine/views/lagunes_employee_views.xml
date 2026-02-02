@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue liste des employés -->
+    <record id="view_lagunes_employee_tree" model="ir.ui.view">
+        <field name="name">lagunes.employee.tree</field>
+        <field name="model">lagunes.employee</field>
+        <field name="type">list</field>
+        <field name="arch" type="xml">
+            <list string="Employés" decoration-muted="not active">
+                <field name="name"/>
+                <field name="entreprise_id"/>
+                <field name="commande_count" sum="Total"/>
+                <field name="active" widget="boolean_toggle" optional="show"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Vue formulaire des employés -->
+    <record id="view_lagunes_employee_form" model="ir.ui.view">
+        <field name="name">lagunes.employee.form</field>
+        <field name="model">lagunes.employee</field>
+        <field name="arch" type="xml">
+            <form string="Employé">
+                <header>
+                    <button name="toggle_active" type="object" string="Activer/Désactiver" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <div class="o_stat_info">
+                            <span class="o_stat_value"><field name="commande_count" widget="integer"/></span>
+                            <span class="o_stat_text">Commandes</span>
+                        </div>
+                    </div>
+                    <h1>
+                        <field name="name" class="oe_inline" placeholder="Nom complet"/>
+                    </h1>
+                    <group>
+                        <group>
+                            <field name="entreprise_id" options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Vue recherche des employés -->
+    <record id="view_lagunes_employee_search" model="ir.ui.view">
+        <field name="name">lagunes.employee.search</field>
+        <field name="model">lagunes.employee</field>
+        <field name="arch" type="xml">
+            <search string="Employés">
+                <field name="name" string="Nom"/>
+                <field name="entreprise_id" string="Entreprise"/>
+                <separator/>
+                <filter name="filter_active" string="Actifs" domain="[('active', '=', True)]"/>
+                <filter name="filter_inactive" string="Inactifs" domain="[('active', '=', False)]"/>
+                <separator/>
+                <group expand="1" string="Grouper par">
+                    <filter name="group_by_entreprise" string="Entreprise" context="{'group_by': 'entreprise_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Action pour voir les employés -->
+    <record id="action_lagunes_employee" model="ir.actions.act_window">
+        <field name="name">Employés</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">lagunes.employee</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créez votre premier employé
+            </p>
+            <p>
+                Gérez les employés de vos entreprises clientes.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Action pour voir les commandes d'un employé -->
+    <record id="action_lagunes_commande_employee" model="ir.actions.act_window">
+        <field name="name">Commandes de l'employé</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">lagunes.commande</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'default_employee_id': active_id}</field>
+        <field name="domain">[('employee_id', '=', active_id)]</field>
+    </record>
+
+</odoo>

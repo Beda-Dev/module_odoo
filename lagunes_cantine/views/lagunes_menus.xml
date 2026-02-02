@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Menu principal -->
+    <menuitem id="menu_lagunes_cantine_root" 
+              name="Restaurant Lagunes" 
+              sequence="10" 
+              web_icon="lagunes_cantine,static/description/icon.png"/>
+    
+    <!-- Sous-menu Gestion -->
+    <menuitem id="menu_lagunes_gestion" 
+              name="Gestion" 
+              parent="menu_lagunes_cantine_root" 
+              sequence="10"/>
+    
+    <!-- Menu Entreprises -->
+    <menuitem id="menu_lagunes_entreprises" 
+              name="Entreprises Clientes" 
+              parent="menu_lagunes_gestion" 
+              action="action_partner_cantine" 
+              sequence="10"/>
+    
+    <!-- Menu Employés -->
+    <menuitem id="menu_lagunes_employee" 
+              name="Employés" 
+              parent="menu_lagunes_gestion" 
+              action="action_lagunes_employee" 
+              sequence="20"/>
+    
+    <!-- Sous-menu Menus & Plats -->
+    <menuitem id="menu_lagunes_menus_plats" 
+              name="Menus - Plats" 
+              parent="menu_lagunes_cantine_root" 
+              sequence="20"/>
+    
+    <!-- Menu Templates -->
+    <menuitem id="menu_lagunes_template" 
+              name="Templates de Menu" 
+              parent="menu_lagunes_menus_plats" 
+              action="action_lagunes_menu_template" 
+              sequence="10"/>
+    
+    <!-- Menu Menus -->
+    <menuitem id="menu_lagunes_menu" 
+              name="Menus Cantine" 
+              parent="menu_lagunes_menus_plats" 
+              action="action_lagunes_menu_v2" 
+              sequence="20"/>
+    
+    <!-- Menu Plats -->
+    <menuitem id="menu_lagunes_plat" 
+              name="Plats" 
+              parent="menu_lagunes_menus_plats" 
+              action="action_lagunes_plat" 
+              sequence="30"/>
+    
+    <!-- Menu Options de plats -->
+    <menuitem id="menu_lagunes_plat_option" 
+              name="Options de Plats" 
+              parent="menu_lagunes_menus_plats" 
+              action="action_lagunes_plat_option" 
+              sequence="40"/>
+    
+    <!-- Sous-menu Commandes & Facturation -->
+    <menuitem id="menu_lagunes_commandes" 
+              name="Commandes &amp; Facturation" 
+              parent="menu_lagunes_cantine_root" 
+              sequence="30"/>
+    
+    <!-- Menu Commandes -->
+    <menuitem id="menu_lagunes_commande" 
+              name="Commandes" 
+              parent="menu_lagunes_commandes" 
+              action="action_lagunes_commande" 
+              sequence="10"/>
+    
+    <!-- Menu Cuisine (pour les cuisiniers) -->
+    <menuitem id="menu_lagunes_cuisine" 
+              name="Cuisine" 
+              parent="menu_lagunes_cantine_root" 
+              sequence="40" 
+              groups="lagunes_cantine.group_lagunes_cuisine"/>
+    
+    <menuitem id="menu_lagunes_commande_cuisine" 
+              name="Commandes du jour" 
+              parent="menu_lagunes_cuisine" 
+              action="action_lagunes_commande_cuisine" 
+              sequence="10"/>
+
+</odoo>

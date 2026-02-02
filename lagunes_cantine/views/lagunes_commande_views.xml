@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue formulaire pour lagunes.commande -->
+    <record id="view_lagunes_commande_form" model="ir.ui.view">
+        <field name="name">lagunes.commande.form</field>
+        <field name="model">lagunes.commande</field>
+        <field name="arch" type="xml">
+            <form string="Commande Cantine">
+                <header>
+                    <button name="action_confirm" type="object" string="Confirmer" 
+                            invisible="state != 'draft'" class="oe_highlight"/>
+                    <button name="action_prepare" type="object" string="En préparation" 
+                            invisible="state != 'confirmed'" class="oe_highlight"/>
+                    <button name="action_ready" type="object" string="Prêt" 
+                            invisible="state != 'preparing'" class="oe_highlight"/>
+                    <button name="action_deliver" type="object" string="Livré" 
+                            invisible="state != 'ready'" class="oe_highlight"/>
+                    <button name="action_cancel" type="object" string="Annuler" 
+                            invisible="state in ['delivered', 'cancelled']"/>
+                    <field name="state" widget="statusbar" 
+                           statusbar_visible="draft,confirmed,preparing,ready,delivered"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="create_sale_order" type="object" 
+                                class="oe_stat_button" icon="fa-usd" 
+                                string="Créer facture" 
+                                invisible="facturation_state != 'not_invoiced'"/>
+                    </div>
+                    
+                    <div class="oe_title">
+                        <h1>
+                            <field name="reference" readonly="1"/>
+                        </h1>
+                    </div>
+                    
+                    <group>
+                        <group>
+                            <field name="entreprise_id" options="{'no_create': True}"/>
+                            <field name="employee_id" domain="[('entreprise_id', '=', entreprise_id)]" 
+                                   options="{'no_create': True}"/>
+                            <field name="date"/>
+                        </group>
+                        <group>
+                            <field name="facturation_state"/>
+                            <field name="sale_order_id" readonly="1" 
+                                   invisible="not sale_order_id"/>
+                        </group>
+                    </group>
+                    
+                    <group>
+                        <group string="Détails de la commande">
+                            <field name="menu_id" options="{'no_create': True}"/>
+                            <field name="plat_id" options="{'no_create': True}"/>
+                            <field name="quantity"/>
+                        </group>
+                        <group string="Prix">
+                            <field name="prix_unitaire" readonly="1"/>
+                            <field name="prix_total" readonly="1" 
+                                   widget="monetary" options="{'currency_field': 'False'}"/>
+                        </group>
+                    </group>
+                    
+                    <group string="Options personnalisées">
+                        <field name="option_sans_sel"/>
+                        <field name="option_piment_apart"/>
+                    </group>
+                    
+                    <group string="Notes / Instructions spéciales">
+                        <field name="notes" nolabel="1" placeholder="Instructions spéciales pour la cuisine..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Vue liste pour lagunes.commande -->
+    <record id="view_lagunes_commande_tree" model="ir.ui.view">
+        <field name="name">lagunes.commande.list</field>
+        <field name="model">lagunes.commande</field>
+        <field name="arch" type="xml">
+            <list string="Commandes" 
+                  decoration-success="state == 'delivered'" 
+                  decoration-info="state in ['confirmed', 'preparing']"
+                  decoration-muted="state == 'cancelled'">
+                <field name="reference"/>
+                <field name="date"/>
+                <field name="entreprise_id"/>
+                <field name="employee_id"/>
+                <field name="plat_id"/>
+                <field name="quantity"/>
+                <field name="prix_total" sum="Total"/>
+                <field name="state" widget="badge" 
+                       decoration-success="state == 'delivered'"
+                       decoration-info="state in ['confirmed', 'preparing']"
+                       decoration-warning="state == 'ready'"
+                       decoration-danger="state == 'cancelled'"/>
+                <field name="facturation_state" widget="badge" 
+                       decoration-warning="facturation_state == 'not_invoiced'"
+                       decoration-info="facturation_state == 'to_invoice'"
+                       decoration-success="facturation_state == 'invoiced'"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Vue kanban pour lagunes.commande (cuisine) -->
+    <record id="view_lagunes_commande_kanban" model="ir.ui.view">
+        <field name="name">lagunes.commande.kanban</field>
+        <field name="model">lagunes.commande</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="reference"/>
+                <field name="employee_id"/>
+                <field name="plat_id"/>
+                <field name="quantity"/>
+                <field name="option_sans_sel"/>
+                <field name="option_piment_apart"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_title">
+                                    <strong><field name="reference"/></strong>
+                                </div>
+                                <div class="o_kanban_record_subtitle">
+                                    <i class="fa fa-user"/> <field name="employee_id"/><br/>
+                                    <i class="fa fa-cutlery"/> <field name="plat_id"/> (x<field name="quantity"/>)
+                                </div>
+                                <div class="mt-2">
+                                    <span t-if="record.option_sans_sel.raw_value" 
+                                          class="badge rounded-pill text-bg-warning me-1">
+                                        <i class="fa fa-ban"/> Sans sel
+                                    </span>
+                                    <span t-if="record.option_piment_apart.raw_value" 
+                                          class="badge rounded-pill text-bg-danger me-1">
+                                        <i class="fa fa-fire"/> Piment à part
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
+    <!-- Vue recherche pour lagunes.commande -->
+    <record id="view_lagunes_commande_search" model="ir.ui.view">
+        <field name="name">lagunes.commande.search</field>
+        <field name="model">lagunes.commande</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher commandes">
+                <field name="reference"/>
+                <field name="entreprise_id"/>
+                <field name="employee_name"/>
+                <field name="plat_id"/>
+                <filter string="Aujourd'hui" name="today" 
+                        domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="À confirmer" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Confirmées" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter string="En préparation" name="preparing" domain="[('state', '=', 'preparing')]"/>
+                <filter string="Prêt" name="ready" domain="[('state', '=', 'ready')]"/>
+                <filter string="Non facturées" name="not_invoiced" 
+                        domain="[('facturation_state', '=', 'not_invoiced')]"/>
+                <separator/>
+                <filter string="Sans sel" name="sans_sel" 
+                        domain="[('option_sans_sel', '=', True)]"/>
+                <filter string="Piment à part" name="piment_apart" 
+                        domain="[('option_piment_apart', '=', True)]"/>
+                <group expand="0" string="Grouper par">
+                    <filter string="Entreprise" name="group_entreprise" 
+                            context="{'group_by': 'entreprise_id'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'date'}"/>
+                    <filter string="Statut" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Plat" name="group_plat" context="{'group_by': 'plat_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Action pour lagunes.commande -->
+    <record id="action_lagunes_commande" model="ir.actions.act_window">
+        <field name="name">Commandes</field>
+        <field name="res_model">lagunes.commande</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="context">{'search_default_today': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucune commande
+            </p>
+            <p>
+                Les commandes apparaissent ici lorsque les employés<br/>
+                passent commande via le site web.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Action spéciale pour la cuisine (vue kanban par défaut) -->
+    <record id="action_lagunes_commande_cuisine" model="ir.actions.act_window">
+        <field name="name">Commandes du jour</field>
+        <field name="res_model">lagunes.commande</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_today': 1, 'search_default_confirmed': 1, 'search_default_preparing': 1}</field>
+        <field name="domain">[('state', 'in', ['confirmed', 'preparing', 'ready'])]</field>
+    </record>
+
+</odoo>

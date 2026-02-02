@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue formulaire pour lagunes.menu -->
+    <record id="view_lagunes_menu_form" model="ir.ui.view">
+        <field name="name">lagunes.menu.form</field>
+        <field name="model">lagunes.menu</field>
+        <field name="arch" type="xml">
+            <form string="Menu Cantine">
+                <header>
+                    <button name="action_view_commandes" type="object" 
+                            string="Voir les commandes" class="oe_highlight"
+                            invisible="commande_count == 0"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_commandes" type="object" 
+                                class="oe_stat_button" icon="fa-shopping-cart">
+                            <field name="commande_count" widget="statinfo" 
+                                   string="Commandes"/>
+                        </button>
+                    </div>
+                    
+                    <group>
+                        <group>
+                            <field name="entreprise_id" options="{'no_create': True}"/>
+                            <field name="date"/>
+                            <field name="day_of_week" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                            <field name="name" invisible="1"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Plats du menu">
+                            <field name="plat_ids" widget="many2many_tags" options="{'color_field': 'color'}">
+                                <list>
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="image_128" widget="image" width="50"/>
+                                    <field name="name"/>
+                                    <field name="category_id"/>
+                                    <field name="prix_unitaire"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes">
+                            <field name="notes" placeholder="Notes ou instructions pour ce menu..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Vue liste pour lagunes.menu -->
+    <record id="view_lagunes_menu_tree" model="ir.ui.view">
+        <field name="name">lagunes.menu.list</field>
+        <field name="model">lagunes.menu</field>
+        <field name="arch" type="xml">
+            <list string="Menus" decoration-muted="not active">
+                <field name="date"/>
+                <field name="day_of_week"/>
+                <field name="entreprise_id"/>
+                <field name="plat_ids" widget="many2many_tags"/>
+                <field name="commande_count"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Vue calendrier pour lagunes.menu -->
+    <record id="view_lagunes_menu_calendar" model="ir.ui.view">
+        <field name="name">lagunes.menu.calendar</field>
+        <field name="model">lagunes.menu</field>
+        <field name="arch" type="xml">
+            <calendar string="Calendrier des menus" date_start="date" color="entreprise_id" mode="month">
+                <field name="entreprise_id"/>
+                <field name="plat_ids" widget="many2many_tags"/>
+            </calendar>
+        </field>
+    </record>
+    
+    <!-- Vue recherche pour lagunes.menu -->
+    <record id="view_lagunes_menu_search" model="ir.ui.view">
+        <field name="name">lagunes.menu.search</field>
+        <field name="model">lagunes.menu</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher menus">
+                <field name="entreprise_id"/>
+                <field name="date"/>
+                <field name="plat_ids"/>
+                <filter string="Aujourd'hui" name="today" 
+                        domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Cette semaine" name="this_week" 
+                        domain="[('date', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d')),
+                                ('date', '&lt;=', (context_today() + datetime.timedelta(days=6-context_today().weekday())).strftime('%Y-%m-%d'))]"/>
+                <filter string="Actifs" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archivés" name="inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Grouper par">
+                    <filter string="Entreprise" name="group_entreprise" context="{'group_by': 'entreprise_id'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'date'}"/>
+                    <filter string="Jour de la semaine" name="group_day" context="{'group_by': 'day_of_week'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Action pour lagunes.menu -->
+    <record id="action_lagunes_menu" model="ir.actions.act_window">
+        <field name="name">Menus</field>
+        <field name="res_model">lagunes.menu</field>
+        <field name="view_mode">list,form,calendar</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer un nouveau menu
+            </p>
+            <p>
+                Les menus sont affichés par entreprise et par jour.<br/>
+                Ajoutez les plats disponibles pour chaque menu.
+            </p>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,14 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_lagunes_menu_user,lagunes.menu.user,model_lagunes_menu,group_lagunes_user,1,0,0,0
+access_lagunes_menu_manager,lagunes.menu.manager,model_lagunes_menu,group_lagunes_manager,1,1,1,1
+access_lagunes_plat_user,lagunes.plat.user,model_lagunes_plat,group_lagunes_user,1,0,0,0
+access_lagunes_plat_manager,lagunes.plat.manager,model_lagunes_plat,group_lagunes_manager,1,1,1,1
+access_lagunes_commande_user,lagunes.commande.user,model_lagunes_commande,group_lagunes_user,1,0,0,0
+access_lagunes_commande_cuisine,lagunes.commande.cuisine,model_lagunes_commande,group_lagunes_cuisine,1,1,0,0
+access_lagunes_commande_manager,lagunes.commande.manager,model_lagunes_commande,group_lagunes_manager,1,1,1,1
+access_lagunes_commande_line_user,lagunes.commande.line.user,model_lagunes_commande_line,group_lagunes_user,1,0,0,0
+access_lagunes_commande_line_manager,lagunes.commande.line.manager,model_lagunes_commande_line,group_lagunes_manager,1,1,1,1
+access_lagunes_menu_public,lagunes.menu.public,model_lagunes_menu,base.group_public,1,0,0,0
+access_lagunes_plat_public,lagunes.plat.public,model_lagunes_plat,base.group_public,1,0,0,0
+access_lagunes_commande_public,lagunes.commande.public,model_lagunes_commande,base.group_public,0,0,1,0
+access_res_partner_public,res.partner.public,base.model_res_partner,base.group_public,1,0,0,0

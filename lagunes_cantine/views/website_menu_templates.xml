@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Template : Affichage du menu -->
+    <template id="cantine_menu" name="Menu du jour">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <!-- En-tête avec navigation -->
+                <div class="bg-primary text-white py-3">
+                    <div class="container">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h3 class="mb-0">
+                                    <i class="fa fa-building"/> <t t-esc="entreprise.name"/>
+                                </h3>
+                                <small>Bienvenue, <t t-esc="employee_name"/></small>
+                            </div>
+                            <div class="col-auto">
+                                <a href="/cantine/mes_commandes" class="btn btn-light btn-sm me-2">
+                                    <i class="fa fa-list"/> Mes commandes
+                                </a>
+                                <a href="/cantine/logout" class="btn btn-outline-light btn-sm">
+                                    <i class="fa fa-sign-out"/> Déconnexion
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="container mt-4 mb-5">
+                    <!-- Navigation par date -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <a t-attf-href="/cantine/menu/#{entreprise.id}?menu_date=#{previous_date}" 
+                                           class="btn btn-outline-primary">
+                                            <i class="fa fa-chevron-left"/> Jour précédent
+                                        </a>
+                                        <div class="text-center">
+                                            <h4 class="mb-0">
+                                                <t t-esc="target_date.strftime('%A %d %B %Y')"/>
+                                            </h4>
+                                        </div>
+                                        <a t-attf-href="/cantine/menu/#{entreprise.id}?menu_date=#{next_date}" 
+                                           class="btn btn-outline-primary">
+                                            Jour suivant <i class="fa fa-chevron-right"/>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Affichage du menu -->
+                    <t t-if="has_menu">
+                        <div class="row">
+                            <div class="col-12">
+                                <h3 class="mb-4">
+                                    <i class="fa fa-cutlery"/> Menu du jour
+                                </h3>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <t t-foreach="menu.plat_ids" t-as="plat">
+                                <div class="col-lg-4 col-md-6 mb-4">
+                                    <div class="card h-100 shadow-sm plat-card" t-att-data-plat-id="plat.id">
+                                        <t t-if="plat.image_128">
+                                            <img t-att-src="'data:image/png;base64,' + plat.image_128.decode('utf-8')" 
+                                                 class="card-img-top" 
+                                                 alt="Image du plat" 
+                                                 style="height: 200px; object-fit: cover;"/>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                                                 style="height: 200px;">
+                                                <i class="fa fa-cutlery fa-3x text-muted"/>
+                                            </div>
+                                        </t>
+                                        
+                                        <div class="card-body">
+                                            <h5 class="card-title" t-field="plat.name"/>
+                                            <p class="card-text text-muted" t-if="plat.description" t-field="plat.description"/>
+                                            
+                                            <t t-if="plat.category_id">
+                                                <span class="badge rounded-pill text-bg-secondary mb-2">
+                                                    <t t-esc="plat.category_id.name"/>
+                                                </span>
+                                            </t>
+                                            
+                                            <div class="mt-3">
+                                                <strong class="text-primary">
+                                                    <t t-esc="plat.prix_unitaire"/> FCFA
+                                                </strong>
+                                            </div>
+                                            
+                                            <!-- Options disponibles -->
+                                            <div class="mt-3" t-if="plat.option_sans_sel or plat.option_piment_apart">
+                                                <small class="text-muted">Options disponibles:</small>
+                                                <div class="form-check" t-if="plat.option_sans_sel">
+                                                    <input class="form-check-input option-sans-sel" 
+                                                           type="checkbox" 
+                                                           t-att-id="'sans_sel_' + str(plat.id)"/>
+                                                    <label class="form-check-label" t-att-for="'sans_sel_' + str(plat.id)">
+                                                        Sans sel
+                                                    </label>
+                                                </div>
+                                                <div class="form-check" t-if="plat.option_piment_apart">
+                                                    <input class="form-check-input option-piment" 
+                                                           type="checkbox" 
+                                                           t-att-id="'piment_' + str(plat.id)"/>
+                                                    <label class="form-check-label" t-att-for="'piment_' + str(plat.id)">
+                                                        Piment à part
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Quantité -->
+                                            <div class="mt-3">
+                                                <label class="form-label">Quantité</label>
+                                                <input type="number" 
+                                                       class="form-control plat-quantity" 
+                                                       value="1" 
+                                                       min="1" 
+                                                       max="10"/>
+                                            </div>
+                                            
+                                            <!-- Notes -->
+                                            <div class="mt-3">
+                                                <label class="form-label">Notes spéciales (optionnel)</label>
+                                                <textarea class="form-control plat-notes" 
+                                                          rows="2" 
+                                                          placeholder="Ex: bien cuit, sauce à part..."></textarea>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card-footer bg-white">
+                                            <button type="button" 
+                                                    class="btn btn-primary w-100 btn-commander" 
+                                                    t-att-data-plat-id="plat.id"
+                                                    t-att-data-menu-id="menu.id"
+                                                    t-att-data-entreprise-id="entreprise.id">
+                                                <i class="fa fa-shopping-cart"/> Commander
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                    
+                    <!-- Aucun menu disponible -->
+                    <t t-else="">
+                        <div class="row">
+                            <div class="col-lg-6 offset-lg-3">
+                                <div class="alert alert-warning text-center">
+                                    <i class="fa fa-exclamation-triangle fa-3x mb-3"/>
+                                    <h4>Aucun menu disponible</h4>
+                                    <p>Il n'y a pas de menu pour cette date.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+            
+            <!-- Script de commande -->
+            <script type="text/javascript" src="/lagunes_cantine/static/src/js/lagunes_commande.js"/>
+        </t>
+    </template>
+
+</odoo>

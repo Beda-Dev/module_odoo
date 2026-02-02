@@ -1,0 +1,196 @@
+/* === LAGUNES CANTINE - STYLES PERSONNALISÉS === */
+
+/* Cards des plats */
+.plat-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.plat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Images des plats */
+.plat-card img {
+    border-top-left-radius: calc(0.25rem - 1px);
+    border-top-right-radius: calc(0.25rem - 1px);
+}
+
+/* Boutons de commande */
+.btn-commander {
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-commander:hover {
+    transform: scale(1.05);
+}
+
+/* Animation de chargement */
+.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Badges d'état */
+.badge {
+    font-size: 0.85rem;
+    padding: 0.35em 0.65em;
+}
+
+/* Header avec image de fond */
+.bg-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+/* Cards avec ombre */
+.shadow {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+/* Options de plat */
+.form-check-label {
+    cursor: pointer;
+    user-select: none;
+}
+
+.form-check-input {
+    cursor: pointer;
+}
+
+/* Quantité input */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .plat-card {
+        margin-bottom: 1rem;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    .display-4 {
+        font-size: 2.5rem;
+    }
+}
+
+/* Animation d'apparition */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.plat-card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* États des commandes */
+.text-bg-info {
+    background-color: #0dcaf0 !important;
+    color: #000 !important;
+}
+
+.text-bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.text-bg-danger {
+    background-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+.text-bg-success {
+    background-color: #198754 !important;
+    color: #fff !important;
+}
+
+.text-bg-primary {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+}
+
+.text-bg-secondary {
+    background-color: #6c757d !important;
+    color: #fff !important;
+}
+
+/* Amélioration du formulaire */
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-check-input:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+
+/* Alert personnalisé */
+.alert {
+    border-radius: 0.5rem;
+}
+
+.alert-info {
+    background-color: #cfe2ff;
+    border-color: #b6d4fe;
+    color: #084298;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+    color: #664d03;
+}
+
+.alert-success {
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+    color: #0f5132;
+}
+
+/* Card footer */
+.card-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* Prix */
+.text-primary {
+    color: #667eea !important;
+}
+
+/* Navigation date */
+.btn-outline-primary {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.btn-outline-primary:hover {
+    background-color: #667eea;
+    border-color: #667eea;
+    color: #fff;
+}

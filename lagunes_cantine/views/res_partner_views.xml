@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue formulaire étendue pour res.partner -->
+    <record id="view_partner_form_cantine" model="ir.ui.view">
+        <field name="name">res.partner.form.cantine</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            
+            <!-- Ajouter un onglet Cantine -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Cantine" invisible="not is_cantine_client">
+                    <group>
+                        <group string="Configuration">
+                            <field name="is_cantine_client"/>
+                            <field name="cantine_code_required" invisible="not is_cantine_client"/>
+                            <field name="cantine_access_code" 
+                                   password="True" 
+                                   invisible="not is_cantine_client or not cantine_code_required"/>
+                        </group>
+                        <group string="Statistiques">
+                            <field name="menu_ids" invisible="1"/>
+                            <field name="commande_ids" invisible="1"/>
+                            <label for="menu_ids" string="Menus"/>
+                            <div>
+                                <field name="menu_ids" nolabel="1" readonly="1" 
+                                       widget="statinfo" string="Menus"/>
+                            </div>
+                            <label for="commande_ids" string="Commandes"/>
+                            <div>
+                                <field name="commande_ids" nolabel="1" readonly="1" 
+                                       widget="statinfo" string="Commandes"/>
+                            </div>
+                        </group>
+                    </group>
+                    
+                    <group string="Lien d'accès web" invisible="not is_cantine_client">
+                        <div class="alert alert-info" role="alert">
+                            <strong>Lien pour vos employés :</strong>
+                            <br/>
+                            <code>https://votre-domaine.odoo.com/cantine/access/<field name="id" readonly="1"/></code>
+                            <br/>
+                            <small>Partagez ce lien avec vos employés pour qu'ils puissent accéder au menu et passer commande.</small>
+                        </div>
+                    </group>
+                </page>
+            </xpath>
+            
+        </field>
+    </record>
+    
+    <!-- Vue liste filtrée pour les clients cantine -->
+    <record id="view_partner_tree_cantine" model="ir.ui.view">
+        <field name="name">res.partner.list.cantine</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <list string="Entreprises Clientes Cantine">
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="email"/>
+                <field name="cantine_code_required"/>
+                <field name="cantine_access_code" password="True"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Action pour les entreprises clientes cantine -->
+    <record id="action_partner_cantine" model="ir.actions.act_window">
+        <field name="name">Entreprises Clientes</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_cantine_client', '=', True)]</field>
+        <field name="context">{'default_is_cantine_client': True, 'default_customer_rank': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer une nouvelle entreprise cliente
+            </p>
+            <p>
+                Les entreprises clientes peuvent accéder aux menus dédiés<br/>
+                et passer des commandes via le site web.
+            </p>
+        </field>
+    </record>
+
+</odoo>

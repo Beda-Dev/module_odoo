@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue formulaire pour lagunes.plat -->
+    <record id="view_lagunes_plat_form" model="ir.ui.view">
+        <field name="name">lagunes.plat.form</field>
+        <field name="model">lagunes.plat</field>
+        <field name="arch" type="xml">
+            <form string="Plat">
+                <sheet>
+                    <field name="image_1920" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <label for="name" string="Nom du plat"/>
+                        <h1>
+                            <field name="name" placeholder="ex: Riz sauce arachide"/>
+                        </h1>
+                    </div>
+                    
+                    <group>
+                        <group>
+                            <field name="product_id" options="{'no_create': True}"/>
+                            <field name="category_id"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group>
+                            <field name="prix_unitaire"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Description">
+                            <field name="description" placeholder="Description du plat..."/>
+                        </page>
+                        <page string="Options disponibles">
+                            <field name="option_ids" widget="many2many_tags"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Vue liste pour lagunes.plat -->
+    <record id="view_lagunes_plat_tree" model="ir.ui.view">
+        <field name="name">lagunes.plat.list</field>
+        <field name="model">lagunes.plat</field>
+        <field name="arch" type="xml">
+            <list string="Plats" decoration-muted="not active">
+                <field name="sequence" widget="handle"/>
+                <field name="image_128" widget="image" width="50"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="prix_unitaire"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Vue kanban pour lagunes.plat -->
+    <record id="view_lagunes_plat_kanban" model="ir.ui.view">
+        <field name="name">lagunes.plat.kanban</field>
+        <field name="model">lagunes.plat</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <field name="id"/>
+                <field name="name"/>
+                <field name="image_128"/>
+                <field name="prix_unitaire"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_image">
+                                <img t-att-src="kanban_image('lagunes.plat', 'image_128', record.id.raw_value)" 
+                                     alt="Plat" class="o_image_64_cover"/>
+                            </div>
+                            <div class="oe_kanban_details">
+                                <strong class="o_kanban_record_title">
+                                    <field name="name"/>
+                                </strong>
+                                <div class="o_kanban_record_subtitle">
+                                    <field name="category_id"/>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <span class="badge rounded-pill text-bg-primary">
+                                            <field name="prix_unitaire"/> FCFA
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
+    <!-- Vue recherche pour lagunes.plat -->
+    <record id="view_lagunes_plat_search" model="ir.ui.view">
+        <field name="name">lagunes.plat.search</field>
+        <field name="model">lagunes.plat</field>
+        <field name="arch" type="xml">
+            <search string="Rechercher plats">
+                <field name="name"/>
+                <field name="category_id"/>
+                <filter string="Actifs" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Sans sel disponible" name="sans_sel" 
+                        domain="[('option_sans_sel', '=', True)]"/>
+                <filter string="Piment à part disponible" name="piment_apart" 
+                        domain="[('option_piment_apart', '=', True)]"/>
+                <group expand="0" string="Grouper par">
+                    <filter string="Catégorie" name="group_category" 
+                            context="{'group_by': 'category_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Action pour lagunes.plat -->
+    <record id="action_lagunes_plat" model="ir.actions.act_window">
+        <field name="name">Plats</field>
+        <field name="res_model">lagunes.plat</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer un nouveau plat
+            </p>
+            <p>
+                Les plats sont ajoutés aux menus quotidiens.<br/>
+                Configurez les options disponibles pour chaque plat.
+            </p>
+        </field>
+    </record>
+
+</odoo>
