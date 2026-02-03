@@ -67,14 +67,22 @@
               parent="menu_lagunes_cantine_root" 
               sequence="30"/>
     
-    <!-- Menu Commandes -->
+    <!-- Menu Commandes (toutes) -->
     <menuitem id="menu_lagunes_commande" 
-              name="Commandes" 
+              name="Toutes les commandes" 
               parent="menu_lagunes_commandes" 
               action="action_lagunes_commande" 
               sequence="10"/>
     
-    <!-- Menu Cuisine (pour les cuisiniers) -->
+    <!-- Menu Historique - NOUVEAU -->
+    <menuitem id="menu_lagunes_commande_history" 
+              name="Historique" 
+              parent="menu_lagunes_commandes" 
+              action="action_lagunes_commande_history" 
+              sequence="20"
+              groups="lagunes_cantine.group_lagunes_manager"/>
+    
+    <!-- Sous-menu Cuisine (pour les cuisiniers) -->
     <menuitem id="menu_lagunes_cuisine" 
               name="Cuisine" 
               parent="menu_lagunes_cantine_root" 
@@ -86,5 +94,56 @@
               parent="menu_lagunes_cuisine" 
               action="action_lagunes_commande_cuisine" 
               sequence="10"/>
+    
+    <!-- Sous-menu Statistiques - NOUVEAU -->
+    <menuitem id="menu_lagunes_stats" 
+              name="Statistiques" 
+              parent="menu_lagunes_cantine_root" 
+              sequence="50"
+              groups="lagunes_cantine.group_lagunes_manager"/>
+    
+    <!-- Statistiques Commandes - NOUVEAU -->
+    <record id="action_lagunes_stats_commandes" model="ir.actions.act_window">
+        <field name="name">Statistiques Commandes</field>
+        <field name="res_model">lagunes.commande</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_this_month': 1, 'search_default_group_week': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucune donnée statistique
+            </p>
+            <p>
+                Analysez les tendances de commandes par période, entreprise et plat.
+            </p>
+        </field>
+    </record>
+    
+    <menuitem id="menu_lagunes_stats_commandes" 
+              name="Commandes" 
+              parent="menu_lagunes_stats" 
+              action="action_lagunes_stats_commandes" 
+              sequence="10"/>
+    
+    <!-- Statistiques Menus - NOUVEAU -->
+    <record id="action_lagunes_stats_menus" model="ir.actions.act_window">
+        <field name="name">Statistiques Menus</field>
+        <field name="res_model">lagunes.menu</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_this_month': 1, 'search_default_group_entreprise': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucune donnée statistique
+            </p>
+            <p>
+                Analysez la popularité des menus et les tendances.
+            </p>
+        </field>
+    </record>
+    
+    <menuitem id="menu_lagunes_stats_menus" 
+              name="Menus" 
+              parent="menu_lagunes_stats" 
+              action="action_lagunes_stats_menus" 
+              sequence="20"/>
 
 </odoo>

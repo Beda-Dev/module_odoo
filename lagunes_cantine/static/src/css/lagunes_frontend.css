@@ -1,32 +1,113 @@
-/* === LAGUNES CANTINE - STYLES PERSONNALISÉS === */
+/* === LAGUNES CANTINE - STYLES PERSONNALISÉS AMÉLIORÉS === */
 
-/* Cards des plats */
+/* Variables CSS */
+:root {
+    --primary-color: #667eea;
+    --primary-dark: #5568d3;
+    --secondary-color: #764ba2;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #3b82f6;
+    --light-color: #f3f4f6;
+    --dark-color: #1f2937;
+}
+
+/* Reset et base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+    color: var(--dark-color);
+}
+
+/* Header avec gradient moderne */
+.bg-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Cards des plats - Design moderne */
 .plat-card {
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    cursor: pointer;
 }
 
 .plat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border-color: var(--primary-color);
 }
 
-/* Images des plats */
+.plat-card:active {
+    transform: translateY(-4px);
+}
+
+/* Images des plats avec effet overlay */
 .plat-card img {
-    border-top-left-radius: calc(0.25rem - 1px);
-    border-top-right-radius: calc(0.25rem - 1px);
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+    transition: transform 0.3s ease;
+    object-fit: cover;
 }
 
-/* Boutons de commande */
-.btn-commander {
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.btn-commander:hover {
+.plat-card:hover img {
     transform: scale(1.05);
 }
 
-/* Animation de chargement */
+.plat-card .card-img-top {
+    position: relative;
+    overflow: hidden;
+}
+
+.plat-card .card-img-top::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.plat-card:hover .card-img-top::after {
+    opacity: 1;
+}
+
+/* Boutons de commande - Design moderne */
+.btn-commander {
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 16px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3);
+}
+
+.btn-commander:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+}
+
+.btn-commander:active {
+    transform: translateY(0);
+}
+
+/* Animation de chargement améliorée */
 .fa-spinner {
     animation: spin 1s linear infinite;
 }
@@ -36,39 +117,87 @@
     100% { transform: rotate(360deg); }
 }
 
-/* Badges d'état */
+/* Badges modernisés */
 .badge {
     font-size: 0.85rem;
-    padding: 0.35em 0.65em;
+    padding: 0.4em 0.8em;
+    font-weight: 600;
+    border-radius: 6px;
+    letter-spacing: 0.025em;
 }
 
-/* Header avec image de fond */
-.bg-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+.badge.rounded-pill {
+    border-radius: 50px;
 }
 
-/* Cards avec ombre */
+/* Prix avec animation */
+.text-primary {
+    color: var(--primary-color) !important;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+/* Cards avec shadow modernisée */
+.card {
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
 .shadow {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 .shadow-sm {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Options de plat */
+/* Options de plat - Design amélioré */
+.form-check {
+    padding: 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.form-check:hover {
+    background-color: var(--light-color);
+}
+
 .form-check-label {
     cursor: pointer;
     user-select: none;
+    font-weight: 500;
+    color: #4b5563;
 }
 
 .form-check-input {
     cursor: pointer;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.2rem;
 }
 
-/* Quantité input */
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Quantité input - Design modernisé */
 input[type="number"] {
     -moz-appearance: textfield;
+    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+    transition: border-color 0.2s ease;
+}
+
+input[type="number"]:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 input[type="number"]::-webkit-inner-spin-button,
@@ -77,26 +206,150 @@ input[type="number"]::-webkit-outer-spin-button {
     margin: 0;
 }
 
-/* Responsive */
+/* Textarea - Design modernisé */
+textarea.form-control {
+    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.2s ease;
+}
+
+textarea.form-control:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Navigation par date - Design amélioré */
+.btn-outline-primary {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3);
+}
+
+/* Alert personnalisé */
+.alert {
+    border-radius: 12px;
+    border: none;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+}
+
+/* États des commandes - Couleurs améliorées */
+.text-bg-info {
+    background-color: var(--info-color) !important;
+    color: #fff !important;
+}
+
+.text-bg-warning {
+    background-color: var(--warning-color) !important;
+    color: #fff !important;
+}
+
+.text-bg-danger {
+    background-color: var(--danger-color) !important;
+    color: #fff !important;
+}
+
+.text-bg-success {
+    background-color: var(--success-color) !important;
+    color: #fff !important;
+}
+
+.text-bg-primary {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+.text-bg-secondary {
+    background-color: #6b7280 !important;
+    color: #fff !important;
+}
+
+/* Amélioration du formulaire */
+.form-control {
+    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+    padding: 0.625rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+/* Card footer */
+.card-footer {
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* Responsive amélioré */
 @media (max-width: 768px) {
     .plat-card {
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
     }
     
     h1 {
-        font-size: 2rem;
+        font-size: 1.875rem;
     }
     
     .display-4 {
-        font-size: 2.5rem;
+        font-size: 2.25rem;
+    }
+    
+    .btn-commander {
+        font-size: 14px;
+        padding: 10px 20px;
     }
 }
 
-/* Animation d'apparition */
-@keyframes fadeIn {
+/* Animation d'apparition améliorée */
+@keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
     }
     to {
         opacity: 1;
@@ -105,92 +358,108 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .plat-card {
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeInUp 0.6s ease-out;
+    animation-fill-mode: both;
 }
 
-/* États des commandes */
-.text-bg-info {
-    background-color: #0dcaf0 !important;
-    color: #000 !important;
+.plat-card:nth-child(1) { animation-delay: 0.1s; }
+.plat-card:nth-child(2) { animation-delay: 0.2s; }
+.plat-card:nth-child(3) { animation-delay: 0.3s; }
+.plat-card:nth-child(4) { animation-delay: 0.4s; }
+.plat-card:nth-child(5) { animation-delay: 0.5s; }
+.plat-card:nth-child(6) { animation-delay: 0.6s; }
+
+/* Liste des entreprises - Page d'accueil */
+.list-group-item {
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    border: 2px solid #e5e7eb;
+    transition: all 0.2s ease;
 }
 
-.text-bg-warning {
-    background-color: #ffc107 !important;
-    color: #000 !important;
+.list-group-item:hover {
+    border-color: var(--primary-color);
+    background-color: #f9fafb;
+    transform: translateX(8px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.text-bg-danger {
-    background-color: #dc3545 !important;
-    color: #fff !important;
+.list-group-item-action {
+    color: var(--dark-color);
 }
 
-.text-bg-success {
-    background-color: #198754 !important;
-    color: #fff !important;
+/* Boutons secondaires */
+.btn-light {
+    background-color: white;
+    border: 2px solid white;
+    color: var(--primary-color);
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
-.text-bg-primary {
-    background-color: #0d6efd !important;
-    color: #fff !important;
+.btn-light:hover {
+    background-color: #f9fafb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.text-bg-secondary {
-    background-color: #6c757d !important;
-    color: #fff !important;
+.btn-outline-light {
+    border: 2px solid white;
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
-/* Amélioration du formulaire */
-.form-control:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+.btn-outline-light:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: white;
+    transform: translateY(-2px);
 }
 
-.form-check-input:checked {
-    background-color: #667eea;
-    border-color: #667eea;
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+    width: 10px;
 }
 
-/* Alert personnalisé */
-.alert {
-    border-radius: 0.5rem;
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
 }
 
-.alert-info {
-    background-color: #cfe2ff;
-    border-color: #b6d4fe;
-    color: #084298;
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 5px;
 }
 
-.alert-warning {
-    background-color: #fff3cd;
-    border-color: #ffecb5;
-    color: #664d03;
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
 }
 
-.alert-success {
-    background-color: #d1e7dd;
-    border-color: #badbcc;
-    color: #0f5132;
+/* Loading spinner amélioré */
+.spinner-border {
+    border-color: var(--primary-color);
+    border-right-color: transparent;
 }
 
-/* Card footer */
-.card-footer {
-    border-top: 1px solid rgba(0, 0, 0, 0.125);
+/* Transitions globales */
+a, button, input, textarea, select {
+    transition: all 0.2s ease;
 }
 
-/* Prix */
-.text-primary {
-    color: #667eea !important;
+/* Focus visible pour l'accessibilité */
+*:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
-/* Navigation date */
-.btn-outline-primary {
-    border-color: #667eea;
-    color: #667eea;
-}
-
-.btn-outline-primary:hover {
-    background-color: #667eea;
-    border-color: #667eea;
-    color: #fff;
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .plat-card {
+        break-inside: avoid;
+    }
 }

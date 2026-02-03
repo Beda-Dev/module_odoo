@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     
-    <!-- Vue formulaire pour lagunes.commande -->
+    <!-- Vue formulaire pour lagunes.commande - AMÉLIORÉE -->
     <record id="view_lagunes_commande_form" model="ir.ui.view">
         <field name="name">lagunes.commande.form</field>
         <field name="model">lagunes.commande</field>
@@ -17,7 +17,7 @@
                     <button name="action_deliver" type="object" string="Livré" 
                             invisible="state != 'ready'" class="oe_highlight"/>
                     <button name="action_cancel" type="object" string="Annuler" 
-                            invisible="state in ['delivered', 'cancelled']"/>
+                            invisible="state in ['delivered', 'cancelled']" class="btn-warning"/>
                     <field name="state" widget="statusbar" 
                            statusbar_visible="draft,confirmed,preparing,ready,delivered"/>
                 </header>
@@ -26,26 +26,39 @@
                         <button name="create_sale_order" type="object" 
                                 class="oe_stat_button" icon="fa-usd" 
                                 string="Créer facture" 
-                                invisible="facturation_state != 'not_invoiced'"/>
+                                invisible="facturation_state != 'not_invoiced'"
+                                groups="lagunes_cantine.group_lagunes_manager"/>
                     </div>
                     
                     <div class="oe_title">
                         <h1>
                             <field name="reference" readonly="1"/>
                         </h1>
+                        <h3>
+                            <span class="badge rounded-pill text-bg-info" invisible="state != 'confirmed'">Confirmée</span>
+                            <span class="badge rounded-pill text-bg-warning" invisible="state != 'preparing'">En préparation</span>
+                            <span class="badge rounded-pill text-bg-primary" invisible="state != 'ready'">Prêt</span>
+                            <span class="badge rounded-pill text-bg-success" invisible="state != 'delivered'">Livré</span>
+                            <span class="badge rounded-pill text-bg-danger" invisible="state != 'cancelled'">Annulé</span>
+                        </h3>
                     </div>
                     
                     <group>
-                        <group>
+                        <group string="Client">
                             <field name="entreprise_id" options="{'no_create': True}"/>
                             <field name="employee_id" domain="[('entreprise_id', '=', entreprise_id)]" 
-                                   options="{'no_create': True}"/>
-                            <field name="date"/>
+                                   options="{'no_create': True, 'no_open': False}"/>
+                            <field name="date" widget="date"/>
+                            <field name="create_date" readonly="1" optional="show"/>
                         </group>
-                        <group>
-                            <field name="facturation_state"/>
+                        <group string="Facturation">
+                            <field name="facturation_state" widget="badge"
+                                   decoration-warning="facturation_state == 'not_invoiced'"
+                                   decoration-info="facturation_state == 'to_invoice'"
+                                   decoration-success="facturation_state == 'invoiced'"/>
                             <field name="sale_order_id" readonly="1" 
-                                   invisible="not sale_order_id"/>
+                                   invisible="not sale_order_id"
+                                   options="{'no_create': True}"/>
                         </group>
                     </group>
                     
@@ -56,15 +69,15 @@
                             <field name="quantity"/>
                         </group>
                         <group string="Prix">
-                            <field name="prix_unitaire" readonly="1"/>
+                            <field name="prix_unitaire" readonly="1" widget="monetary"/>
                             <field name="prix_total" readonly="1" 
-                                   widget="monetary" options="{'currency_field': 'False'}"/>
+                                   widget="monetary" class="oe_subtotal_footer_separator"/>
                         </group>
                     </group>
                     
                     <group string="Options personnalisées">
-                        <field name="option_sans_sel"/>
-                        <field name="option_piment_apart"/>
+                        <field name="option_sans_sel" widget="boolean"/>
+                        <field name="option_piment_apart" widget="boolean"/>
                     </group>
                     
                     <group string="Notes / Instructions spéciales">
@@ -75,7 +88,7 @@
         </field>
     </record>
     
-    <!-- Vue liste pour lagunes.commande -->
+    <!-- Vue liste pour lagunes.commande - AMÉLIORÉE -->
     <record id="view_lagunes_commande_tree" model="ir.ui.view">
         <field name="name">lagunes.commande.list</field>
         <field name="model">lagunes.commande</field>
@@ -83,33 +96,36 @@
             <list string="Commandes" 
                   decoration-success="state == 'delivered'" 
                   decoration-info="state in ['confirmed', 'preparing']"
-                  decoration-muted="state == 'cancelled'">
+                  decoration-warning="state == 'ready'"
+                  decoration-muted="state == 'cancelled'"
+                  create="1" edit="1" delete="1">
                 <field name="reference"/>
-                <field name="date"/>
+                <field name="date" widget="date"/>
                 <field name="entreprise_id"/>
                 <field name="employee_id"/>
                 <field name="plat_id"/>
                 <field name="quantity"/>
-                <field name="prix_total" sum="Total"/>
+                <field name="prix_total" sum="Total" widget="monetary"/>
                 <field name="state" widget="badge" 
                        decoration-success="state == 'delivered'"
                        decoration-info="state in ['confirmed', 'preparing']"
                        decoration-warning="state == 'ready'"
                        decoration-danger="state == 'cancelled'"/>
-                <field name="facturation_state" widget="badge" 
+                <field name="facturation_state" widget="badge" optional="show"
                        decoration-warning="facturation_state == 'not_invoiced'"
                        decoration-info="facturation_state == 'to_invoice'"
                        decoration-success="facturation_state == 'invoiced'"/>
+                <field name="create_date" optional="hide"/>
             </list>
         </field>
     </record>
     
-    <!-- Vue kanban pour lagunes.commande (cuisine) -->
+    <!-- Vue kanban pour lagunes.commande (cuisine) - AMÉLIORÉE -->
     <record id="view_lagunes_commande_kanban" model="ir.ui.view">
         <field name="name">lagunes.commande.kanban</field>
         <field name="model">lagunes.commande</field>
         <field name="arch" type="xml">
-            <kanban default_group_by="state" class="o_kanban_small_column">
+            <kanban default_group_by="state" class="o_kanban_small_column" quick_create="false">
                 <field name="reference"/>
                 <field name="employee_id"/>
                 <field name="plat_id"/>
@@ -117,16 +133,30 @@
                 <field name="option_sans_sel"/>
                 <field name="option_piment_apart"/>
                 <field name="state"/>
+                <field name="notes"/>
+                <field name="date"/>
                 <templates>
                     <t t-name="kanban-box">
                         <div class="oe_kanban_global_click">
                             <div class="oe_kanban_content">
-                                <div class="o_kanban_record_title">
-                                    <strong><field name="reference"/></strong>
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="reference"/>
+                                        </strong>
+                                        <span class="o_kanban_record_subtitle text-muted">
+                                            <i class="fa fa-clock-o"/> <field name="date"/>
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="o_kanban_record_subtitle">
-                                    <i class="fa fa-user"/> <field name="employee_id"/><br/>
-                                    <i class="fa fa-cutlery"/> <field name="plat_id"/> (x<field name="quantity"/>)
+                                <div class="o_kanban_record_body mt-2">
+                                    <div>
+                                        <i class="fa fa-user"/> <field name="employee_id"/>
+                                    </div>
+                                    <div>
+                                        <i class="fa fa-cutlery"/> <field name="plat_id"/> 
+                                        <span class="badge rounded-pill text-bg-secondary">x<field name="quantity"/></span>
+                                    </div>
                                 </div>
                                 <div class="mt-2">
                                     <span t-if="record.option_sans_sel.raw_value" 
@@ -138,6 +168,11 @@
                                         <i class="fa fa-fire"/> Piment à part
                                     </span>
                                 </div>
+                                <div t-if="record.notes.raw_value" class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fa fa-comment"/> <t t-esc="record.notes.value"/>
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </t>
@@ -146,64 +181,162 @@
         </field>
     </record>
     
-    <!-- Vue recherche pour lagunes.commande -->
+    <!-- Vue pivot pour analyses - NOUVELLE -->
+    <record id="view_lagunes_commande_pivot" model="ir.ui.view">
+        <field name="name">lagunes.commande.pivot</field>
+        <field name="model">lagunes.commande</field>
+        <field name="arch" type="xml">
+            <pivot string="Analyse des commandes">
+                <field name="entreprise_id" type="row"/>
+                <field name="plat_id" type="row"/>
+                <field name="date" interval="week" type="col"/>
+                <field name="quantity" type="measure"/>
+                <field name="prix_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    
+    <!-- Vue graphique - NOUVELLE -->
+    <record id="view_lagunes_commande_graph" model="ir.ui.view">
+        <field name="name">lagunes.commande.graph</field>
+        <field name="model">lagunes.commande</field>
+        <field name="arch" type="xml">
+            <graph string="Statistiques des commandes" type="bar">
+                <field name="date" interval="day"/>
+                <field name="quantity" type="measure"/>
+            </graph>
+        </field>
+    </record>
+    
+    <!-- Vue recherche pour lagunes.commande - AMÉLIORÉE -->
     <record id="view_lagunes_commande_search" model="ir.ui.view">
         <field name="name">lagunes.commande.search</field>
         <field name="model">lagunes.commande</field>
         <field name="arch" type="xml">
             <search string="Rechercher commandes">
-                <field name="reference"/>
-                <field name="entreprise_id"/>
-                <field name="employee_name"/>
-                <field name="plat_id"/>
+                <field name="reference" string="Référence"/>
+                <field name="entreprise_id" string="Entreprise"/>
+                <field name="employee_name" string="Employé"/>
+                <field name="plat_id" string="Plat"/>
+                <field name="date" string="Date"/>
+                
+                <!-- Filtres rapides par date -->
                 <filter string="Aujourd'hui" name="today" 
                         domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                <filter string="À confirmer" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Hier" name="yesterday" 
+                        domain="[('date', '=', (context_today() - relativedelta(days=1)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter string="Cette semaine" name="this_week" 
+                        domain="[('date', '&gt;=', (context_today() - relativedelta(days=context_today().weekday())).strftime('%Y-%m-%d')),
+                                ('date', '&lt;=', (context_today() + relativedelta(days=6-context_today().weekday())).strftime('%Y-%m-%d'))]"/>
+                <filter string="Ce mois" name="this_month" 
+                        domain="[('date', '&gt;=', context_today().strftime('%Y-%m-01')),
+                                ('date', '&lt;', (context_today() + relativedelta(months=1)).strftime('%Y-%m-01'))]"/>
+                
+                <!-- Filtres par statut -->
+                <separator/>
+                <filter string="Brouillon" name="draft" domain="[('state', '=', 'draft')]"/>
                 <filter string="Confirmées" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
                 <filter string="En préparation" name="preparing" domain="[('state', '=', 'preparing')]"/>
                 <filter string="Prêt" name="ready" domain="[('state', '=', 'ready')]"/>
+                <filter string="Livré" name="delivered" domain="[('state', '=', 'delivered')]"/>
+                <filter string="Annulé" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
+                
+                <!-- Filtres facturation -->
+                <separator/>
                 <filter string="Non facturées" name="not_invoiced" 
                         domain="[('facturation_state', '=', 'not_invoiced')]"/>
+                <filter string="À facturer" name="to_invoice" 
+                        domain="[('facturation_state', '=', 'to_invoice')]"/>
+                <filter string="Facturées" name="invoiced" 
+                        domain="[('facturation_state', '=', 'invoiced')]"/>
+                
+                <!-- Filtres options -->
                 <separator/>
                 <filter string="Sans sel" name="sans_sel" 
                         domain="[('option_sans_sel', '=', True)]"/>
                 <filter string="Piment à part" name="piment_apart" 
                         domain="[('option_piment_apart', '=', True)]"/>
+                <filter string="Avec notes" name="with_notes" 
+                        domain="[('notes', '!=', False)]"/>
+                
+                <!-- Groupements -->
                 <group expand="0" string="Grouper par">
                     <filter string="Entreprise" name="group_entreprise" 
                             context="{'group_by': 'entreprise_id'}"/>
-                    <filter string="Date" name="group_date" context="{'group_by': 'date'}"/>
-                    <filter string="Statut" name="group_state" context="{'group_by': 'state'}"/>
-                    <filter string="Plat" name="group_plat" context="{'group_by': 'plat_id'}"/>
+                    <filter string="Employé" name="group_employee" 
+                            context="{'group_by': 'employee_id'}"/>
+                    <filter string="Date" name="group_date" 
+                            context="{'group_by': 'date:day'}"/>
+                    <filter string="Semaine" name="group_week" 
+                            context="{'group_by': 'date:week'}"/>
+                    <filter string="Mois" name="group_month" 
+                            context="{'group_by': 'date:month'}"/>
+                    <filter string="Statut" name="group_state" 
+                            context="{'group_by': 'state'}"/>
+                    <filter string="Plat" name="group_plat" 
+                            context="{'group_by': 'plat_id'}"/>
+                    <filter string="Facturation" name="group_facturation" 
+                            context="{'group_by': 'facturation_state'}"/>
                 </group>
             </search>
         </field>
     </record>
     
-    <!-- Action pour lagunes.commande -->
+    <!-- Action pour lagunes.commande - AMÉLIORÉE -->
     <record id="action_lagunes_commande" model="ir.actions.act_window">
-        <field name="name">Commandes</field>
+        <field name="name">Toutes les commandes</field>
         <field name="res_model">lagunes.commande</field>
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">list,kanban,form,pivot,graph</field>
         <field name="context">{'search_default_today': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Aucune commande
             </p>
             <p>
-                Les commandes apparaissent ici lorsque les employés<br/>
-                passent commande via le site web.
+                Les commandes apparaissent ici lorsque les employés passent commande via le site web.<br/>
+                <ul>
+                    <li>Utilisez les filtres pour affiner votre recherche</li>
+                    <li>Visualisez les statistiques avec le pivot et les graphiques</li>
+                    <li>Groupez par entreprise, date ou statut</li>
+                </ul>
             </p>
         </field>
     </record>
     
-    <!-- Action spéciale pour la cuisine (vue kanban par défaut) -->
+    <!-- Action spéciale pour la cuisine (vue kanban par défaut) - AMÉLIORÉE -->
     <record id="action_lagunes_commande_cuisine" model="ir.actions.act_window">
         <field name="name">Commandes du jour</field>
         <field name="res_model">lagunes.commande</field>
         <field name="view_mode">kanban,list,form</field>
-        <field name="context">{'search_default_today': 1, 'search_default_confirmed': 1, 'search_default_preparing': 1}</field>
+        <field name="context">{'search_default_today': 1, 'search_default_confirmed': 1, 'search_default_preparing': 1, 'search_default_ready': 1}</field>
         <field name="domain">[('state', 'in', ['confirmed', 'preparing', 'ready'])]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucune commande en cours
+            </p>
+            <p>
+                Les commandes confirmées apparaissent ici.<br/>
+                Glissez-déposez les cartes entre les colonnes pour changer leur statut.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Action historique des commandes - NOUVEAU -->
+    <record id="action_lagunes_commande_history" model="ir.actions.act_window">
+        <field name="name">Historique des commandes</field>
+        <field name="res_model">lagunes.commande</field>
+        <field name="view_mode">list,kanban,form,pivot,graph</field>
+        <field name="context">{'search_default_this_month': 1, 'search_default_group_week': 1}</field>
+        <field name="domain">[('state', 'in', ['delivered', 'cancelled'])]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aucun historique
+            </p>
+            <p>
+                Les commandes livrées et annulées apparaissent ici.
+            </p>
+        </field>
     </record>
 
 </odoo>

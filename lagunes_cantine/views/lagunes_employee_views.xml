@@ -26,7 +26,7 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <div class="o_stat_info">
+                        <div class="o_stat_info" invisible="not id">
                             <span class="o_stat_value"><field name="commande_count" widget="integer"/></span>
                             <span class="o_stat_text">Commandes</span>
                         </div>

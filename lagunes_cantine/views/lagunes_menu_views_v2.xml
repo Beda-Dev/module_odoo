@@ -10,7 +10,7 @@
                 <header>
                     <button name="action_view_commandes" type="object" 
                             string="Voir les commandes" class="oe_highlight"
-                            invisible="commande_count == 0"/>
+                            invisible="commande_count == 0 or not id"/>
                     <button name="duplicate_menu" type="object" 
                             string="Dupliquer ce menu" class="btn-secondary"/>
                     <field name="active" widget="statusbar" 
@@ -20,7 +20,7 @@
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_commandes" type="object" 
                                 class="oe_stat_button" icon="fa-shopping-cart"
-                                invisible="commande_count == 0">
+                                invisible="commande_count == 0 or not id">
                             <field name="commande_count" widget="statinfo" 
                                    string="Commandes"/>
                         </button>

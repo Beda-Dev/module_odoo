@@ -132,6 +132,12 @@ class LagunesMenu(models.Model):
         compute='_compute_commande_count'
     )
     
+    commande_ids = fields.One2many(
+        'lagunes.commande',
+        'menu_id',
+        string='Commandes'
+    )
+    
     @api.depends('entreprise_id', 'date')
     def _compute_name(self):
         """Calcul automatique du nom du menu"""
