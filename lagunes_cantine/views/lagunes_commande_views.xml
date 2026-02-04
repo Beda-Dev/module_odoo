@@ -18,7 +18,7 @@
                             invisible="state != 'ready'" class="oe_highlight"/>
                     <button name="action_cancel" type="object" string="Annuler" 
                             invisible="state in ['delivered', 'cancelled']" class="btn-warning"/>
-                    <field name="state" widget="statusbar" 
+                    <field name="state" widget="statusbar" options="{'clickable': '1'}"
                            statusbar_visible="draft,confirmed,preparing,ready,delivered"/>
                 </header>
                 <sheet>

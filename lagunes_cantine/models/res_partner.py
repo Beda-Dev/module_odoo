@@ -25,6 +25,12 @@ class ResPartner(models.Model):
         help='Si activé, les employés devront entrer le code d\'accès pour voir le menu'
     )
     
+    max_employees = fields.Integer(
+        string='Nombre max d\'employés',
+        default=0,
+        help='Nombre maximum de personnes autorisées à passer commande (0 = illimité)'
+    )
+    
     menu_ids = fields.One2many(
         'lagunes.menu',
         'entreprise_id',
@@ -36,6 +42,31 @@ class ResPartner(models.Model):
         'entreprise_id',
         string='Commandes'
     )
+    
+    lagunes_employee_ids = fields.One2many(
+        'lagunes.employee',
+        'entreprise_id',
+        string='Employés'
+    )
+    
+    employee_count = fields.Integer(
+        string='Nombre d\'employés',
+        compute='_compute_employee_count',
+        store=True
+    )
+    
+    active_employee_count = fields.Integer(
+        string='Employés actifs',
+        compute='_compute_employee_count',
+        store=True
+    )
+    
+    @api.depends('lagunes_employee_ids', 'lagunes_employee_ids.active')
+    def _compute_employee_count(self):
+        """Compter les employés totaux et actifs"""
+        for partner in self:
+            partner.employee_count = len(partner.lagunes_employee_ids)
+            partner.active_employee_count = len(partner.lagunes_employee_ids.filtered(lambda e: e.active))
     
     @api.constrains('cantine_access_code', 'is_cantine_client')
     def _check_access_code_unique(self):

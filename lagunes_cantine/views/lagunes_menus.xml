@@ -20,12 +20,12 @@
               action="action_partner_cantine" 
               sequence="10"/>
     
-    <!-- Menu Employés -->
-    <menuitem id="menu_lagunes_employee" 
+    <!-- Menu Employés - DÉSACTIVÉ : Les employés sont maintenant gérés depuis les entreprises clientes -->
+    <!-- <menuitem id="menu_lagunes_employee" 
               name="Employés" 
               parent="menu_lagunes_gestion" 
               action="action_lagunes_employee" 
-              sequence="20"/>
+              sequence="20"/> -->
     
     <!-- Sous-menu Menus & Plats -->
     <menuitem id="menu_lagunes_menus_plats" 
