@@ -68,14 +68,12 @@ class LagunesCommande(models.Model):
         required=True
     )
     
-    option_sans_sel = fields.Boolean(
-        string='Sans sel',
-        default=False
-    )
-    
-    option_piment_apart = fields.Boolean(
-        string='Piment à part',
-        default=False
+    option_ids = fields.Many2many(
+        'lagunes.plat.option',
+        'lagunes_commande_option_rel',
+        'commande_id',
+        'option_id',
+        string='Options'
     )
     
     notes = fields.Text(
@@ -144,10 +142,27 @@ class LagunesCommande(models.Model):
     
     @api.constrains('quantity')
     def _check_quantity(self):
-        """Vérifier que la quantité est positive"""
+        """Vérifier que la quantité est exactement 1"""
         for commande in self:
-            if commande.quantity <= 0:
-                raise ValidationError("La quantité doit être supérieure à 0")
+            if commande.quantity != 1:
+                raise ValidationError("La quantité par employé est limitée à 1 portion.")
+
+    @api.constrains('employee_id', 'date')
+    def _check_one_order_per_day(self):
+        """Empêcher un employé de commander plus d'une fois par jour"""
+        for record in self:
+            if not record.employee_id or not record.date:
+                continue
+            
+            existing = self.search([
+                ('id', '!=', record.id),
+                ('employee_id', '=', record.employee_id.id),
+                ('date', '=', record.date),
+                ('state', '!=', 'cancelled')
+            ], limit=1)
+            
+            if existing:
+                raise ValidationError(f"L'employé {record.employee_id.name} a déjà passé une commande pour le {record.date}.")
     
     @api.onchange('menu_id')
     def _onchange_menu_id(self):
@@ -220,12 +235,7 @@ class LagunesCommande(models.Model):
         """Générer la description de la ligne de commande"""
         description = f"{self.plat_id.name} - {self.employee_name}"
         
-        options = []
-        if self.option_sans_sel:
-            options.append("Sans sel")
-        if self.option_piment_apart:
-            options.append("Piment à part")
-        
+        options = self.option_ids.mapped('name')
         if options:
             description += f" ({', '.join(options)})"
         
@@ -237,11 +247,7 @@ class LagunesCommande(models.Model):
     def get_options_display(self):
         """Retourner les options pour affichage"""
         self.ensure_one()
-        options = []
-        if self.option_sans_sel:
-            options.append('Sans sel')
-        if self.option_piment_apart:
-            options.append('Piment à part')
+        options = self.option_ids.mapped('name')
         return ', '.join(options) if options else 'Aucune'
 
 
@@ -271,16 +277,6 @@ class LagunesCommandeLine(models.Model):
         string='Quantité',
         default=1,
         required=True
-    )
-    
-    option_sans_sel = fields.Boolean(
-        string='Sans sel',
-        default=False
-    )
-    
-    option_piment_apart = fields.Boolean(
-        string='Piment à part',
-        default=False
     )
     
     prix_unitaire = fields.Float(

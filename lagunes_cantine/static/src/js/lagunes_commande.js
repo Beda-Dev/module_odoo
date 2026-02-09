@@ -13,21 +13,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Récupérer la carte du plat
             const platCard = this.closest('.plat-card');
             
-            // Récupérer les options
-            const sansSel = platCard.querySelector('.option-sans-sel')?.checked || false;
-            const pimentApart = platCard.querySelector('.option-piment')?.checked || false;
+            // Récupérer les options dynamiques
+            const optionCheckboxes = platCard.querySelectorAll('.plat-option-checkbox:checked');
+            const optionIds = Array.from(optionCheckboxes).map(cb => parseInt(cb.value));
             
-            // Récupérer la quantité
-            const quantity = parseInt(platCard.querySelector('.plat-quantity').value) || 1;
+            // Récupérer la quantité (forcée à 1)
+            const quantity = 1;
             
             // Récupérer les notes
             const notes = platCard.querySelector('.plat-notes').value || '';
-            
-            // Validation
-            if (quantity < 1 || quantity > 10) {
-                alert('La quantité doit être entre 1 et 10');
-                return;
-            }
             
             // Désactiver le bouton pendant le traitement
             button.disabled = true;
@@ -47,8 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         menu_id: menuId,
                         plat_id: platId,
                         quantity: quantity,
-                        option_sans_sel: sansSel,
-                        option_piment_apart: pimentApart,
+                        option_ids: optionIds,
                         notes: notes
                     }
                 })

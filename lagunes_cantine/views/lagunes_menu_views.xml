@@ -10,8 +10,7 @@
                 <header>
                     <button name="duplicate_menu" type="object" 
                             string="Dupliquer" class="btn-secondary"/>
-                    <field name="active" widget="statusbar" 
-                           statusbar_visible="True,False"/>
+                    <field name="active" invisible="1"/>
                 </header>
                 <sheet>
                     <!-- Temporairement désactivé pour débugger -->

@@ -15,30 +15,88 @@
                             
                             <div class="card shadow">
                                 <div class="card-body p-5">
-                                    <h3 class="card-title mb-4">Accès entreprise</h3>
-                                    <p class="text-muted">Sélectionnez votre entreprise pour accéder au menu du jour</p>
+                                    <h3 class="card-title mb-4">Accès MyCantine</h3>
+                                    <p class="text-muted">Veuillez entrer vos informations pour accéder à votre menu</p>
                                     
-                                    <t t-if="entreprises">
-                                        <div class="list-group">
-                                            <t t-foreach="entreprises" t-as="entreprise">
-                                                <a t-attf-href="/cantine/access/#{entreprise.id}" 
-                                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <h5 class="mb-1" t-field="entreprise.name"/>
-                                                        <small class="text-muted" t-if="entreprise.phone">
-                                                            <i class="fa fa-phone"/> <t t-esc="entreprise.phone"/>
-                                                        </small>
-                                                    </div>
-                                                    <i class="fa fa-arrow-right"/>
-                                                </a>
-                                            </t>
+                                    <form id="accessForm" class="needs-validation" novalidate="">
+                                        <div class="mb-3">
+                                            <label for="employee_name" class="form-label">Votre nom complet *</label>
+                                            <input type="text" 
+                                                   class="form-control form-control-lg" 
+                                                   id="employee_name" 
+                                                   name="employee_name" 
+                                                   required="" 
+                                                   placeholder="ex: Jean Kouassi"/>
+                                            <div class="invalid-feedback">
+                                                Veuillez entrer votre nom
+                                            </div>
                                         </div>
-                                    </t>
-                                    <t t-else="">
-                                        <div class="alert alert-info">
-                                            Aucune entreprise cliente disponible pour le moment.
+                                        
+                                        <div class="mb-4">
+                                            <label for="access_code" class="form-label">Code entreprise (si requis)</label>
+                                            <input type="password" 
+                                                   class="form-control form-control-lg" 
+                                                   id="access_code" 
+                                                   name="access_code" 
+                                                   placeholder="Entrez le code d'accès"/>
+                                            <div class="form-text">Si votre entreprise exige un code, veuillez le saisir ici.</div>
                                         </div>
-                                    </t>
+                                        
+                                        <div id="error_message" class="alert alert-danger d-none" role="alert"></div>
+                                        
+                                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 shadow-sm transition-all hover-up">
+                                            <i class="fa fa-sign-in me-2"/> Accéder au menu du jour
+                                        </button>
+                                    </form>
+
+                                    <script type="text/javascript">
+                                        document.addEventListener('DOMContentLoaded', function() {
+                                            const form = document.getElementById('accessForm');
+                                            
+                                            form.addEventListener('submit', function(e) {
+                                                e.preventDefault();
+                                                
+                                                if (!form.checkValidity()) {
+                                                    e.stopPropagation();
+                                                    form.classList.add('was-validated');
+                                                    return;
+                                                }
+                                                
+                                                const employeeName = document.getElementById('employee_name').value;
+                                                const accessCode = document.getElementById('access_code')?.value || null;
+                                                
+                                                fetch('/cantine/verify_access', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                    },
+                                                    body: JSON.stringify({
+                                                        jsonrpc: '2.0',
+                                                        method: 'call',
+                                                        params: {
+                                                            employee_name: employeeName,
+                                                            access_code: accessCode
+                                                        }
+                                                    })
+                                                })
+                                                .then(response => response.json())
+                                                .then(data => {
+                                                    if (data.result &amp;&amp; data.result.success) {
+                                                        window.location.href = `/cantine/menu/${data.result.entreprise_id}`;
+                                                    } else {
+                                                        const errorDiv = document.getElementById('error_message');
+                                                        errorDiv.textContent = data.result?.message || 'Erreur d\'accès';
+                                                        errorDiv.classList.remove('d-none');
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    const errorDiv = document.getElementById('error_message');
+                                                    errorDiv.textContent = 'Erreur de connexion';
+                                                    errorDiv.classList.remove('d-none');
+                                                });
+                                            });
+                                        });
+                                    </script>
                                 </div>
                             </div>
                         </div>

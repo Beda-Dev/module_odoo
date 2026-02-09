@@ -47,24 +47,15 @@
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <div>
                                                     <h5 class="mb-1" t-esc="commande.plat_id.name"/>
-                                                    <div class="text-muted">
-                                                        Quantité: <t t-esc="commande.quantity"/>
-                                                    </div>
                                                 </div>
                                                 <strong class="text-primary">
                                                     <t t-esc="commande.prix_total"/> FCFA
                                                 </strong>
                                             </div>
                                             
-                                            <t t-if="commande.option_sans_sel or commande.option_piment_apart">
-                                                <div class="mt-2">
-                                                    <small class="text-muted">Options:</small><br/>
-                                                    <span class="badge rounded-pill text-bg-warning me-1" t-if="commande.option_sans_sel">
-                                                        Sans sel
-                                                    </span>
-                                                    <span class="badge rounded-pill text-bg-danger" t-if="commande.option_piment_apart">
-                                                        Piment à part
-                                                    </span>
+                                            <t t-if="commande.option_ids">
+                                                <div class="mt-2 text-muted">
+                                                    <small>Options: <t t-esc="commande.get_options_display()"/></small>
                                                 </div>
                                             </t>
                                             
@@ -147,17 +138,9 @@
                                                 </small>
                                             </div>
                                             <h5 t-esc="commande.plat_id.name"/>
-                                            <div class="text-muted mb-2">
-                                                Quantité: <t t-esc="commande.quantity"/>
-                                            </div>
-                                            <t t-if="commande.option_sans_sel or commande.option_piment_apart">
+                                            <t t-if="commande.option_ids">
                                                 <div class="mb-2">
-                                                    <span class="badge rounded-pill text-bg-warning me-1" t-if="commande.option_sans_sel">
-                                                        Sans sel
-                                                    </span>
-                                                    <span class="badge rounded-pill text-bg-danger" t-if="commande.option_piment_apart">
-                                                        Piment à part
-                                                    </span>
+                                                    <span class="badge rounded-pill text-bg-light" t-esc="commande.get_options_display()"/>
                                                 </div>
                                             </t>
                                             <div class="mt-3">

@@ -105,10 +105,6 @@
                 <field name="name"/>
                 <field name="category_id"/>
                 <filter string="Actifs" name="active" domain="[('active', '=', True)]"/>
-                <filter string="Sans sel disponible" name="sans_sel" 
-                        domain="[('option_sans_sel', '=', True)]"/>
-                <filter string="Piment à part disponible" name="piment_apart" 
-                        domain="[('option_piment_apart', '=', True)]"/>
                 <group expand="0" string="Grouper par">
                     <filter string="Catégorie" name="group_category" 
                             context="{'group_by': 'category_id'}"/>

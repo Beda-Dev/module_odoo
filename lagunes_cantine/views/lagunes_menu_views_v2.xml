@@ -13,8 +13,7 @@
                             invisible="commande_count == 0 or not id"/>
                     <button name="duplicate_menu" type="object" 
                             string="Dupliquer ce menu" class="btn-secondary"/>
-                    <field name="active" widget="statusbar" 
-                           statusbar_visible="True,False"/>
+                    <field name="active" invisible="1"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">

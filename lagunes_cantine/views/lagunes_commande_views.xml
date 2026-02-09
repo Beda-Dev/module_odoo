@@ -76,8 +76,7 @@
                     </group>
                     
                     <group string="Options personnalisées">
-                        <field name="option_sans_sel" widget="boolean"/>
-                        <field name="option_piment_apart" widget="boolean"/>
+                        <field name="option_ids" widget="many2many_tags" options="{'no_create': True}"/>
                     </group>
                     
                     <group string="Notes / Instructions spéciales">
@@ -130,8 +129,7 @@
                 <field name="employee_id"/>
                 <field name="plat_id"/>
                 <field name="quantity"/>
-                <field name="option_sans_sel"/>
-                <field name="option_piment_apart"/>
+                <field name="option_ids"/>
                 <field name="state"/>
                 <field name="notes"/>
                 <field name="date"/>
@@ -159,14 +157,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-2">
-                                    <span t-if="record.option_sans_sel.raw_value" 
-                                          class="badge rounded-pill text-bg-warning me-1">
-                                        <i class="fa fa-ban"/> Sans sel
-                                    </span>
-                                    <span t-if="record.option_piment_apart.raw_value" 
-                                          class="badge rounded-pill text-bg-danger me-1">
-                                        <i class="fa fa-fire"/> Piment à part
-                                    </span>
+                                    <field name="option_ids" widget="many2many_tags"/>
                                 </div>
                                 <div t-if="record.notes.raw_value" class="mt-2">
                                     <small class="text-muted">
@@ -251,12 +242,6 @@
                 <filter string="Facturées" name="invoiced" 
                         domain="[('facturation_state', '=', 'invoiced')]"/>
                 
-                <!-- Filtres options -->
-                <separator/>
-                <filter string="Sans sel" name="sans_sel" 
-                        domain="[('option_sans_sel', '=', True)]"/>
-                <filter string="Piment à part" name="piment_apart" 
-                        domain="[('option_piment_apart', '=', True)]"/>
                 <filter string="Avec notes" name="with_notes" 
                         domain="[('notes', '!=', False)]"/>
                 

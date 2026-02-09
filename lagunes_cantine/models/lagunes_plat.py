@@ -64,17 +64,6 @@ class LagunesPlat(models.Model):
         help='Options que les clients peuvent choisir pour ce plat'
     )
     
-    option_sans_sel = fields.Boolean(
-        string='Option "Sans sel" disponible',
-        default=True,
-        help='Permet au client de commander ce plat sans sel'
-    )
-    
-    option_piment_apart = fields.Boolean(
-        string='Option "Piment à part" disponible',
-        default=True,
-        help='Permet au client de demander le piment à part'
-    )
     
     menu_ids = fields.Many2many(
         'lagunes.menu',

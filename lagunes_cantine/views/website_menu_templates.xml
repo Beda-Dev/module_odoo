@@ -30,26 +30,10 @@
                 <div class="container mt-4 mb-5">
                     <!-- Navigation par date -->
                     <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <a t-attf-href="/cantine/menu/#{entreprise.id}?menu_date=#{previous_date}" 
-                                           class="btn btn-outline-primary">
-                                            <i class="fa fa-chevron-left"/> Jour précédent
-                                        </a>
-                                        <div class="text-center">
-                                            <h4 class="mb-0">
-                                                <t t-esc="target_date.strftime('%A %d %B %Y')"/>
-                                            </h4>
-                                        </div>
-                                        <a t-attf-href="/cantine/menu/#{entreprise.id}?menu_date=#{next_date}" 
-                                           class="btn btn-outline-primary">
-                                            Jour suivant <i class="fa fa-chevron-right"/>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col-12 text-center">
+                            <h4 class="mb-0 text-primary">
+                                <i class="fa fa-calendar-check-o"/> <t t-esc="date_fr"/>
+                            </h4>
                         </div>
                     </div>
                     
@@ -96,54 +80,52 @@
                                                 </strong>
                                             </div>
                                             
-                                            <!-- Options disponibles -->
-                                            <div class="mt-3" t-if="plat.option_sans_sel or plat.option_piment_apart">
-                                                <small class="text-muted">Options disponibles:</small>
-                                                <div class="form-check" t-if="plat.option_sans_sel">
-                                                    <input class="form-check-input option-sans-sel" 
-                                                           type="checkbox" 
-                                                           t-att-id="'sans_sel_' + str(plat.id)"/>
-                                                    <label class="form-check-label" t-att-for="'sans_sel_' + str(plat.id)">
-                                                        Sans sel
-                                                    </label>
-                                                </div>
-                                                <div class="form-check" t-if="plat.option_piment_apart">
-                                                    <input class="form-check-input option-piment" 
-                                                           type="checkbox" 
-                                                           t-att-id="'piment_' + str(plat.id)"/>
-                                                    <label class="form-check-label" t-att-for="'piment_' + str(plat.id)">
-                                                        Piment à part
-                                                    </label>
-                                                </div>
+                                            <!-- Options disponibles (dynamiques) -->
+                                            <div class="mt-3" t-if="plat.option_ids">
+                                                <small class="fw-bold">Options disponibles:</small>
+                                                <t t-foreach="plat.option_ids" t-as="option">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input plat-option-checkbox" 
+                                                               type="checkbox" 
+                                                               t-att-value="option.id"
+                                                               t-att-id="'opt_' + str(plat.id) + '_' + str(option.id)"/>
+                                                        <label class="form-check-label" t-att-for="'opt_' + str(plat.id) + '_' + str(option.id)">
+                                                            <t t-esc="option.name"/>
+                                                            <t t-if="option.prix_supplementaire > 0">
+                                                                (+<t t-esc="option.prix_supplementaire"/> FCFA)
+                                                            </t>
+                                                        </label>
+                                                    </div>
+                                                </t>
                                             </div>
                                             
-                                            <!-- Quantité -->
-                                            <div class="mt-3">
-                                                <label class="form-label">Quantité</label>
-                                                <input type="number" 
-                                                       class="form-control plat-quantity" 
-                                                       value="1" 
-                                                       min="1" 
-                                                       max="10"/>
-                                            </div>
+                                            <!-- Quantité (Cachée car fixée à 1) -->
+                                            <input type="hidden" class="plat-quantity" value="1"/>
                                             
                                             <!-- Notes -->
                                             <div class="mt-3">
                                                 <label class="form-label">Notes spéciales (optionnel)</label>
                                                 <textarea class="form-control plat-notes" 
                                                           rows="2" 
-                                                          placeholder="Ex: bien cuit, sauce à part..."></textarea>
+                                                          placeholder="Ex: sauce à part..."></textarea>
                                             </div>
                                         </div>
                                         
                                         <div class="card-footer bg-white">
-                                            <button type="button" 
-                                                    class="btn btn-primary w-100 btn-commander" 
-                                                    t-att-data-plat-id="plat.id"
-                                                    t-att-data-menu-id="menu.id"
-                                                    t-att-data-entreprise-id="entreprise.id">
-                                                <i class="fa fa-shopping-cart"/> Commander
-                                            </button>
+                                            <t t-if="not has_ordered">
+                                                <button type="button" 
+                                                        class="btn btn-primary w-100 btn-commander" 
+                                                        t-att-data-plat-id="plat.id"
+                                                        t-att-data-menu-id="menu.id"
+                                                        t-att-data-entreprise-id="entreprise.id">
+                                                    <i class="fa fa-shopping-cart"/> Commander
+                                                </button>
+                                            </t>
+                                            <t t-else="">
+                                                <div class="alert alert-success py-2 mb-0 text-center">
+                                                    <i class="fa fa-check-circle"/> Commande déjà passée
+                                                </div>
+                                            </t>
                                         </div>
                                     </div>
                                 </div>

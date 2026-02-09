@@ -84,33 +84,67 @@ class ResPartner(models.Model):
                     )
     
     @api.model
-    def verify_cantine_access(self, entreprise_id, employee_name, access_code=None):
+    def verify_cantine_access(self, employee_name, access_code=None, entreprise_id=None):
         """
-        Vérifier l'accès d'un employé au menu de son entreprise
+        Vérifier l'accès d'un employé au menu
         
-        :param entreprise_id: ID de l'entreprise
         :param employee_name: Nom de l'employé
         :param access_code: Code d'accès (optionnel)
+        :param entreprise_id: ID de l'entreprise (optionnel, pour compatibilité)
         :return: dict avec statut et message
         """
-        entreprise = self.browse(entreprise_id)
-        
-        if not entreprise.exists() or not entreprise.is_cantine_client:
-            return {'success': False, 'message': 'Entreprise non trouvée ou non cliente'}
-        
-        # Si le code est requis
-        if entreprise.cantine_code_required:
-            if not access_code:
-                return {'success': False, 'message': 'Code d\'accès requis'}
-            if access_code != entreprise.cantine_access_code:
+        # 1. Identifier l'entreprise ou les entreprises candidates
+        if access_code:
+            entreprises = self.search([
+                ('is_cantine_client', '=', True),
+                ('cantine_access_code', '=', access_code)
+            ])
+            if not entreprises:
                 return {'success': False, 'message': 'Code d\'accès incorrect'}
-        
-        # Vérifier que le nom de l'employé n'est pas vide
+        elif entreprise_id:
+            entreprises = self.browse(entreprise_id)
+            if not entreprises.exists() or not entreprises.is_cantine_client:
+                return {'success': False, 'message': 'Entreprise non trouvée'}
+        else:
+            # Recherche dans toutes les entreprises ne demandant pas de code
+            entreprises = self.search([
+                ('is_cantine_client', '=', True),
+                ('cantine_code_required', '=', False)
+            ])
+            if not entreprises:
+                return {'success': False, 'message': 'Veuillez entrer un code d\'accès pour votre entreprise'}
+
         if not employee_name or len(employee_name.strip()) < 2:
             return {'success': False, 'message': 'Veuillez entrer votre nom complet'}
         
+        employee_name = employee_name.strip()
+        
+        # 2. Chercher l'employé dans les entreprises candidates
+        # On utilise une recherche insensible à la casse
+        employee = self.env['lagunes.employee'].sudo().search([
+            ('entreprise_id', 'in', entreprises.ids),
+            ('name', '=ilike', employee_name),
+            ('active', '=', True)
+        ], limit=2) # On en prend 2 pour détecter les doublons ambigus
+        
+        if not employee:
+            return {
+                'success': False, 
+                'message': 'Employé non reconnu ou inactif. Veuillez contacter votre administrateur.'
+            }
+        
+        if len(employee) > 1:
+            return {
+                'success': False,
+                'message': 'Ambiguïté : plusieurs employés portent ce nom dans différentes entreprises. Veuillez fournir un code d\'accès.'
+            }
+        
+        # Succès
         return {
             'success': True,
-            'message': f'Bienvenue {employee_name}',
-            'entreprise_name': entreprise.name
+            'message': f'Bienvenue {employee.name}',
+            'entreprise_name': employee.entreprise_id.name,
+            'entreprise_id': employee.entreprise_id.id,
+            'employee_id': employee.id,
+            'employee_name': employee.name
         }
