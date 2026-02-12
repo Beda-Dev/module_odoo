@@ -5,48 +5,6 @@ from odoo.exceptions import ValidationError
 from datetime import date, timedelta
 
 
-class LagunesMenuTemplate(models.Model):
-    """Template de menu pouvant être partagé entre plusieurs entreprises"""
-    _name = 'lagunes.menu.template'
-    _description = 'Template de menu cantine'
-    _order = 'sequence, name'
-
-    name = fields.Char(
-        string='Nom du template',
-        required=True,
-        translate=True,
-        help='Ex: Menu Lundi, Menu Végétarien, Menu Standard'
-    )
-    
-    sequence = fields.Integer(
-        string='Séquence',
-        default=10,
-        help='Ordre d\'affichage'
-    )
-    
-    description = fields.Text(
-        string='Description',
-        translate=True
-    )
-    
-    plat_ids = fields.Many2many(
-        'lagunes.plat',
-        'lagunes_menu_template_plat_rel',
-        'template_id',
-        'plat_id',
-        string='Plats du template'
-    )
-    
-    active = fields.Boolean(
-        string='Actif',
-        default=True
-    )
-    
-    notes = fields.Text(
-        string='Notes'
-    )
-
-
 class LagunesMenu(models.Model):
     _name = 'lagunes.menu'
     _description = 'Menu de la cantine'
@@ -67,9 +25,18 @@ class LagunesMenu(models.Model):
     )
     
     date = fields.Date(
-        string='Date',
+        string='Date de début',
         required=True,
-        default=fields.Date.today
+        default=fields.Date.today,
+        index=True
+    )
+    
+    date_end = fields.Date(
+        string='Date de fin',
+        required=True,
+        default=fields.Date.today,
+        index=True,
+        help='Date de fin de validité du menu (incluse)'
     )
     
     day_of_week = fields.Selection([
@@ -82,32 +49,22 @@ class LagunesMenu(models.Model):
         ('6', 'Dimanche'),
     ], string='Jour de la semaine', compute='_compute_day_of_week', store=True)
     
-    # Système de validité
-    validity_type = fields.Selection([
-        ('daily', 'Journalier'),
-        ('weekly', 'Hebdomadaire'),
-        ('monthly', 'Mensuel'),
-    ], string='Type de validité', default='daily', required=True,
-       help='Défini si ce menu s\'applique pour un jour, une semaine ou un mois')
+    menu_type = fields.Selection([
+        ('individual', 'Plats individuels'),
+        ('pack', 'Pack de plats'),
+    ], string='Type de menu', default='individual', required=True)
     
-    date_end = fields.Date(
-        string='Date de fin de validité',
-        compute='_compute_date_end',
-        store=True,
-        help='Calculée automatiquement selon le type de validité'
+    is_pack_based = fields.Boolean(
+        string='Basé sur un pack',
+        compute='_compute_is_pack_based',
+        store=True
     )
     
-    is_template_based = fields.Boolean(
-        string='Basé sur un template',
-        default=False,
-        help='Cocher si ce menu est basé sur un template partagé'
-    )
-    
-    template_id = fields.Many2one(
-        'lagunes.menu.template',
-        string='Template du menu',
+    pack_id = fields.Many2one(
+        'lagunes.menu.pack',
+        string='Pack de menus',
         ondelete='set null',
-        help='Template de menu partagé (optionnel)'
+        help='Pack de menus réutilisable (optionnel)'
     )
     
     plat_ids = fields.Many2many(
@@ -115,12 +72,14 @@ class LagunesMenu(models.Model):
         'lagunes_menu_plat_rel',
         'menu_id',
         'plat_id',
-        string='Plats du menu'
+        string='Plats du menu',
+        help='Liste des plats disponibles dans ce menu'
     )
     
     active = fields.Boolean(
         string='Actif',
-        default=True
+        default=True,
+        help='Un seul menu actif par entreprise et par jour'
     )
     
     notes = fields.Text(
@@ -138,12 +97,15 @@ class LagunesMenu(models.Model):
         string='Commandes'
     )
     
-    @api.depends('entreprise_id', 'date')
+    @api.depends('entreprise_id', 'date', 'date_end')
     def _compute_name(self):
         """Calcul automatique du nom du menu"""
         for menu in self:
             if menu.entreprise_id and menu.date:
-                menu.name = f"{menu.entreprise_id.name} - {menu.date.strftime('%d/%m/%Y')}"
+                if menu.date == menu.date_end:
+                    menu.name = f"{menu.entreprise_id.name} - {menu.date.strftime('%d/%m/%Y')}"
+                else:
+                    menu.name = f"{menu.entreprise_id.name} - du {menu.date.strftime('%d/%m/%Y')} au {menu.date_end.strftime('%d/%m/%Y')}"
             else:
                 menu.name = 'Nouveau menu'
     
@@ -156,21 +118,11 @@ class LagunesMenu(models.Model):
             else:
                 menu.day_of_week = False
     
-    @api.depends('date', 'validity_type')
-    def _compute_date_end(self):
-        """Calculer la date de fin en fonction du type de validité"""
+    @api.depends('menu_type')
+    def _compute_is_pack_based(self):
+        """Calculer si le menu est basé sur un pack"""
         for menu in self:
-            if menu.date:
-                if menu.validity_type == 'daily':
-                    menu.date_end = menu.date
-                elif menu.validity_type == 'weekly':
-                    menu.date_end = menu.date + timedelta(days=6)
-                elif menu.validity_type == 'monthly':
-                    # Dernier jour du mois
-                    next_month = menu.date.replace(day=28) + timedelta(days=4)
-                    menu.date_end = next_month - timedelta(days=next_month.day)
-            else:
-                menu.date_end = False
+            menu.is_pack_based = (menu.menu_type == 'pack')
     
     def _compute_commande_count(self):
         """Compter les commandes pour ce menu"""
@@ -179,35 +131,74 @@ class LagunesMenu(models.Model):
                 ('menu_id', '=', menu.id)
             ])
     
-    @api.onchange('template_id')
-    def _onchange_template_id(self):
-        """Charger les plats du template si sélectionné"""
-        if self.template_id:
-            self.is_template_based = True
-            self.plat_ids = [(6, 0, self.template_id.plat_ids.ids)]
-        else:
-            self.is_template_based = False
+    @api.onchange('menu_type')
+    def _onchange_menu_type(self):
+        """Gérer le changement de type de menu"""
+        if self.menu_type == 'individual':
+            # Mode individuel : vider le pack et garder les plats manuels
+            self.pack_id = False
+        elif self.menu_type == 'pack':
+            # Mode pack : vider les plats individuels
+            self.plat_ids = [(5, 0, 0)]  # Vider la liste
     
-    @api.constrains('entreprise_id', 'date')
-    def _check_unique_menu_per_day(self):
-        """Un seul menu par entreprise et par jour"""
+    @api.onchange('pack_id')
+    def _onchange_pack_id(self):
+        """Charger les plats du pack si sélectionné"""
+        if self.pack_id:
+            self.plat_ids = [(6, 0, self.pack_id.plat_ids.ids)]
+        else:
+            self.plat_ids = [(5, 0, 0)]  # Vider si pas de pack
+    
+    @api.constrains('date', 'date_end')
+    def _check_dates(self):
+        """Vérifier que la date de fin est après la date de début"""
         for menu in self:
-            duplicate = self.search([
-                ('id', '!=', menu.id),
-                ('entreprise_id', '=', menu.entreprise_id.id),
-                ('date', '=', menu.date)
-            ], limit=1)
-            if duplicate:
+            if menu.date_end and menu.date and menu.date_end < menu.date:
                 raise ValidationError(
-                    f"Un menu existe déjà pour {menu.entreprise_id.name} "
-                    f"le {menu.date.strftime('%d/%m/%Y')}"
+                    'La date de fin ne peut pas être antérieure à la date de début.'
+                )
+    
+    @api.constrains('entreprise_id', 'date', 'date_end', 'active')
+    def _check_unique_active_menu_per_day(self):
+        """
+        CONTRAINTE STRICTE: Un seul menu actif par entreprise et par période
+        Empêche les chevauchements
+        """
+        for menu in self:
+            if menu.active:
+                # Chercher d'autres menus actifs pour la même entreprise avec chevauchement
+                overlapping = self.search([
+                    ('id', '!=', menu.id),
+                    ('entreprise_id', '=', menu.entreprise_id.id),
+                    ('active', '=', True),
+                    '|', '&', 
+                    ('date', '<=', menu.date_end),
+                    ('date_end', '>=', menu.date),
+                    ('date', '<=', menu.date),
+                    ('date_end', '>=', menu.date)
+                ], limit=1)
+                
+                if overlapping:
+                    raise ValidationError(
+                        f"Un menu actif existe déjà pour {menu.entreprise_id.name} "
+                        f"pendant la période du {menu.date.strftime('%d/%m/%Y')} au {menu.date_end.strftime('%d/%m/%Y')}.\n\n"
+                        f"Menu existant: {overlapping.name}\n"
+                        f"Les périodes de menu ne peuvent pas se chevaucher."
+                    )
+    
+    @api.constrains('plat_ids')
+    def _check_plat_ids(self):
+        """Vérifier qu'il y a au moins un plat dans le menu"""
+        for menu in self:
+            if menu.active and not menu.plat_ids:
+                raise ValidationError(
+                    'Un menu actif doit contenir au moins un plat.'
                 )
     
     @api.model
     def get_menu_for_entreprise(self, entreprise_id, target_date=None):
         """
-        Récupérer le menu applicable pour une entreprise à une date donnée
-        Considère la validité (journalière, hebdomadaire, mensuelle)
+        Récupérer le menu actif pour une entreprise à une date donnée
         
         :param entreprise_id: ID de l'entreprise
         :param target_date: Date ciblée (aujourd'hui par défaut)
@@ -240,9 +231,22 @@ class LagunesMenu(models.Model):
         self.ensure_one()
         new_date = self.date + timedelta(days=1)
         
+        # Vérifier qu'il n'existe pas déjà un menu actif pour cette date
+        existing = self.search([
+            ('entreprise_id', '=', self.entreprise_id.id),
+            ('date', '=', new_date),
+            ('active', '=', True)
+        ])
+        
+        if existing:
+            raise ValidationError(
+                f"Un menu actif existe déjà pour {self.entreprise_id.name} "
+                f"le {new_date.strftime('%d/%m/%Y')}."
+            )
+        
         new_menu = self.copy(default={
             'date': new_date,
-            'name': f"{self.entreprise_id.name} - {new_date.strftime('%d/%m/%Y')}"
+            'active': True
         })
         
         return {
@@ -252,3 +256,8 @@ class LagunesMenu(models.Model):
             'view_mode': 'form',
             'target': 'current'
         }
+    
+    def toggle_active(self):
+        """Activer/Désactiver le menu"""
+        for menu in self:
+            menu.active = not menu.active

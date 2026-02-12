@@ -16,7 +16,8 @@ class LagunesCommande(models.Model):
         required=True,
         copy=False,
         readonly=True,
-        default=lambda self: _('Nouveau')
+        default=lambda self: _('Nouveau'),
+        index=True
     )
     
     entreprise_id = fields.Many2one(
@@ -24,28 +25,15 @@ class LagunesCommande(models.Model):
         string='Entreprise',
         required=True,
         domain=[('is_cantine_client', '=', True)],
-        ondelete='restrict'
-    )
-    
-    employee_id = fields.Many2one(
-        'lagunes.employee',
-        string='Employé',
-        required=True,
         ondelete='restrict',
-        help='Employé qui passe la commande'
-    )
-    
-    employee_name = fields.Char(
-        string='Nom de l\'employé (mémorisation)',
-        related='employee_id.name',
-        store=True,
-        readonly=True
+        index=True
     )
     
     date = fields.Date(
         string='Date de la commande',
         required=True,
-        default=fields.Date.today
+        default=fields.Date.today,
+        index=True
     )
     
     menu_id = fields.Many2one(
@@ -80,6 +68,11 @@ class LagunesCommande(models.Model):
         string='Notes / Instructions spéciales'
     )
     
+    employee_name = fields.Char(
+        string='Nom de l\'employé',
+        help='Nom de l\'employé qui a passé la commande'
+    )
+    
     state = fields.Selection([
         ('draft', 'Brouillon'),
         ('confirmed', 'Confirmée'),
@@ -87,13 +80,13 @@ class LagunesCommande(models.Model):
         ('ready', 'Prêt'),
         ('delivered', 'Livré'),
         ('cancelled', 'Annulé'),
-    ], string='Statut', default='draft', required=True, tracking=True)
+    ], string='Statut', default='draft', required=True, index=True)
     
     facturation_state = fields.Selection([
         ('not_invoiced', 'Non facturée'),
         ('to_invoice', 'À facturer'),
         ('invoiced', 'Facturée'),
-    ], string='État facturation', default='not_invoiced', required=True, tracking=True)
+    ], string='État facturation', default='not_invoiced', required=True)
     
     prix_unitaire = fields.Float(
         string='Prix unitaire',
@@ -125,11 +118,13 @@ class LagunesCommande(models.Model):
         readonly=True
     )
     
-    @api.depends('quantity', 'prix_unitaire')
+    @api.depends('quantity', 'prix_unitaire', 'option_ids')
     def _compute_prix_total(self):
-        """Calcul du prix total"""
+        """Calcul du prix total incluant les options"""
         for commande in self:
-            commande.prix_total = commande.quantity * commande.prix_unitaire
+            prix_base = commande.quantity * commande.prix_unitaire
+            prix_options = sum(commande.option_ids.mapped('prix_supplementaire'))
+            commande.prix_total = prix_base + (prix_options * commande.quantity)
     
     @api.model_create_multi
     def create(self, vals_list):
@@ -145,24 +140,37 @@ class LagunesCommande(models.Model):
         """Vérifier que la quantité est exactement 1"""
         for commande in self:
             if commande.quantity != 1:
-                raise ValidationError("La quantité par employé est limitée à 1 portion.")
-
-    @api.constrains('employee_id', 'date')
-    def _check_one_order_per_day(self):
-        """Empêcher un employé de commander plus d'une fois par jour"""
+                raise ValidationError("La quantité par commande est limitée à 1 portion.")
+    
+    @api.constrains('entreprise_id', 'date')
+    def _check_max_orders_per_day(self):
+        """
+        Vérifier que l'entreprise n'a pas dépassé sa limite de commandes par jour
+        """
         for record in self:
-            if not record.employee_id or not record.date:
+            if not record.entreprise_id or not record.date:
                 continue
             
-            existing = self.search([
-                ('id', '!=', record.id),
-                ('employee_id', '=', record.employee_id.id),
+            max_orders = record.entreprise_id.max_orders_per_day
+            
+            # Si max_orders = 0, pas de limite
+            if max_orders <= 0:
+                continue
+            
+            # Compter les commandes non annulées pour cette entreprise ce jour
+            count = self.search_count([
+                ('id', '!=', record.id),  # Exclure la commande actuelle
+                ('entreprise_id', '=', record.entreprise_id.id),
                 ('date', '=', record.date),
                 ('state', '!=', 'cancelled')
-            ], limit=1)
+            ])
             
-            if existing:
-                raise ValidationError(f"L'employé {record.employee_id.name} a déjà passé une commande pour le {record.date}.")
+            if count >= max_orders:
+                raise ValidationError(
+                    f"Limite de {max_orders} commande(s) par jour atteinte pour "
+                    f"{record.entreprise_id.name}.\n\n"
+                    f"{count} commande(s) déjà passée(s) aujourd'hui."
+                )
     
     @api.onchange('menu_id')
     def _onchange_menu_id(self):
@@ -214,7 +222,7 @@ class LagunesCommande(models.Model):
                 'product_id': self.plat_id.product_id.id,
                 'name': self._get_order_line_description(),
                 'product_uom_qty': self.quantity,
-                'price_unit': self.prix_unitaire,
+                'price_unit': self.prix_total,  # Prix total incluant options
                 'tax_id': [(5, 0, 0)],  # Pas de TVA
             })]
         })
@@ -233,7 +241,7 @@ class LagunesCommande(models.Model):
     
     def _get_order_line_description(self):
         """Générer la description de la ligne de commande"""
-        description = f"{self.plat_id.name} - {self.employee_name}"
+        description = f"{self.plat_id.name}"
         
         options = self.option_ids.mapped('name')
         if options:
@@ -249,48 +257,3 @@ class LagunesCommande(models.Model):
         self.ensure_one()
         options = self.option_ids.mapped('name')
         return ', '.join(options) if options else 'Aucune'
-
-
-class LagunesCommandeLine(models.Model):
-    """
-    Modèle optionnel pour gérer plusieurs plats par commande
-    (extension future si nécessaire)
-    """
-    _name = 'lagunes.commande.line'
-    _description = 'Ligne de commande cantine'
-
-    commande_id = fields.Many2one(
-        'lagunes.commande',
-        string='Commande',
-        required=True,
-        ondelete='cascade'
-    )
-    
-    plat_id = fields.Many2one(
-        'lagunes.plat',
-        string='Plat',
-        required=True,
-        ondelete='restrict'
-    )
-    
-    quantity = fields.Integer(
-        string='Quantité',
-        default=1,
-        required=True
-    )
-    
-    prix_unitaire = fields.Float(
-        string='Prix unitaire',
-        related='plat_id.prix_unitaire'
-    )
-    
-    prix_total = fields.Float(
-        string='Prix total',
-        compute='_compute_prix_total',
-        store=True
-    )
-    
-    @api.depends('quantity', 'prix_unitaire')
-    def _compute_prix_total(self):
-        for line in self:
-            line.prix_total = line.quantity * line.prix_unitaire

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     
-    <!-- Vue formulaire pour lagunes.menu - AMÉLIORÉE -->
+    <!-- Vue formulaire pour lagunes.menu -->
     <record id="view_lagunes_menu_form" model="ir.ui.view">
         <field name="name">lagunes.menu.form</field>
         <field name="model">lagunes.menu</field>
@@ -10,43 +10,60 @@
                 <header>
                     <button name="duplicate_menu" type="object" 
                             string="Dupliquer" class="btn-secondary"/>
-                    <field name="active" invisible="1"/>
+                    <button name="toggle_active" type="object" 
+                            string="Activer/Désactiver" class="btn-warning"/>
                 </header>
                 <sheet>
-                    <!-- Temporairement désactivé pour débugger -->
-                    <!--
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_commandes" type="object" 
-                                class="oe_stat_button" icon="fa-shopping-cart"
+                                class="oe_stat_button" icon="fa-shopping-cart" title="Commandes"
                                 invisible="commande_count == 0 or not id">
                             <field name="commande_count" widget="statinfo" 
                                    string="Commandes"/>
                         </button>
                     </div>
-                    -->
+                    
+                    <div class="alert alert-info" role="alert" invisible="not active">
+                        <i class="fa fa-info-circle" title="Information"/> <strong>Menu actif</strong> - 
+                        Un seul menu actif par entreprise et par jour est autorisé.
+                    </div>
                     
                     <group>
                         <group string="Informations générales">
                             <field name="entreprise_id" options="{'no_create': True}"/>
                             <field name="date" widget="date"/>
+                            <field name="date_end" widget="date"/>
                             <field name="day_of_week" readonly="1"/>
+                            <field name="menu_type" widget="radio"/>
+                            <field name="active" widget="boolean"/>
                         </group>
-                        <group string="Validité">
-                            <field name="validity_type"/>
-                            <field name="date_end" readonly="1" widget="date"/>
+                        <group string="Pack de menus" invisible="menu_type != 'pack'">
+                            <field name="pack_id" options="{'no_create': True}" 
+                                   domain="[('active', '=', True)]"/>
                         </group>
-                    </group>
-                    
-                    <group string="Template de menu (optionnel)" invisible="not is_template_based">
-                        <field name="is_template_based" widget="boolean"/>
-                        <field name="template_id" options="{'no_create': True}" 
-                               invisible="not is_template_based"/>
                     </group>
                     
                     <notebook>
-                        <page string="Plats du menu">
+                        <page string="Plats du menu" invisible="menu_type == 'pack'">
                             <field name="plat_ids" widget="many2many_tags">
                                 <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="image_128" widget="image" width="50"/>
+                                    <field name="name"/>
+                                    <field name="category_id"/>
+                                    <field name="prix_unitaire" widget="monetary"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Plats du pack" invisible="menu_type != 'pack' or not pack_id">
+                            <div class="alert alert-info" role="status">
+                                <i class="fa fa-info-circle" title="Information"/> 
+                                Les plats sont automatiquement chargés depuis le pack sélectionné.
+                                <br/>
+                                <strong>Pack:</strong> <field name="pack_id" readonly="1"/>
+                            </div>
+                            <field name="plat_ids" widget="many2many_tags" readonly="1">
+                                <list>
                                     <field name="sequence" widget="handle"/>
                                     <field name="image_128" widget="image" width="50"/>
                                     <field name="name"/>
@@ -64,7 +81,7 @@
         </field>
     </record>
     
-    <!-- Vue liste pour lagunes.menu - AMÉLIORÉE -->
+    <!-- Vue liste pour lagunes.menu -->
     <record id="view_lagunes_menu_tree" model="ir.ui.view">
         <field name="name">lagunes.menu.list</field>
         <field name="model">lagunes.menu</field>
@@ -74,17 +91,18 @@
                   decoration-muted="active == False"
                   create="1" edit="1" delete="1">
                 <field name="date" widget="date"/>
+                <field name="date_end" widget="date"/>
                 <field name="day_of_week" optional="show"/>
                 <field name="entreprise_id"/>
-                <field name="validity_type" optional="show"/>
-                <field name="date_end" optional="show" widget="date"/>
+                <field name="menu_type" optional="show"/>
+                <field name="pack_id" optional="hide"/>
                 <field name="commande_count" sum="Total" optional="show"/>
-                <field name="active" widget="boolean_toggle" optional="show"/>
+                <field name="active" widget="boolean_toggle"/>
             </list>
         </field>
     </record>
     
-    <!-- Vue kanban pour lagunes.menu - AMÉLIORÉE -->
+    <!-- Vue kanban pour lagunes.menu -->
     <record id="view_lagunes_menu_kanban" model="ir.ui.view">
         <field name="name">lagunes.menu.kanban</field>
         <field name="model">lagunes.menu</field>
@@ -98,7 +116,7 @@
                 <field name="active"/>
                 <field name="plat_ids"/>
                 <templates>
-                    <t t-name="kanban-box">
+                    <t t-name="card">
                         <div class="oe_kanban_global_click">
                             <div class="oe_kanban_content">
                                 <div class="o_kanban_record_top">
@@ -112,19 +130,19 @@
                                 <div class="o_kanban_record_body mt-2">
                                     <t t-if="record.plat_ids.raw_value.length > 0">
                                         <span class="badge rounded-pill text-bg-info">
-                                            <i class="fa fa-cutlery"/> <t t-esc="record.plat_ids.raw_value.length"/> plats
+                                            <i class="fa fa-cutlery" title="Plats"/> <t t-esc="record.plat_ids.raw_value.length"/> plats
                                         </span>
                                     </t>
                                 </div>
                                 <div class="o_kanban_record_bottom mt-2">
                                     <div class="oe_kanban_bottom_left">
                                         <span class="badge rounded-pill text-bg-primary">
-                                            <i class="fa fa-shopping-cart"/> <field name="commande_count"/> cmd
+                                            <i class="fa fa-shopping-cart" title="Commandes"/> <field name="commande_count"/> cmd
                                         </span>
                                     </div>
                                     <div class="oe_kanban_bottom_right">
                                         <t t-if="record.active.raw_value">
-                                            <span class="badge rounded-pill text-bg-success">Actif</span>
+                                            <span class="badge rounded-pill text-bg-success">✓ Actif</span>
                                         </t>
                                         <t t-else="">
                                             <span class="badge rounded-pill text-bg-secondary">Inactif</span>
@@ -139,13 +157,13 @@
         </field>
     </record>
     
-    <!-- Vue calendrier pour lagunes.menu - AMÉLIORÉE -->
+    <!-- Vue calendrier pour lagunes.menu -->
     <record id="view_lagunes_menu_calendar" model="ir.ui.view">
         <field name="name">lagunes.menu.calendar</field>
         <field name="model">lagunes.menu</field>
         <field name="arch" type="xml">
             <calendar string="Calendrier des menus" 
-                      date_start="date" 
+                      date_start="date"
                       date_stop="date_end"
                       color="entreprise_id" 
                       mode="month"
@@ -159,7 +177,7 @@
         </field>
     </record>
     
-    <!-- Vue pivot pour analyses - NOUVELLE -->
+    <!-- Vue pivot pour analyses -->
     <record id="view_lagunes_menu_pivot" model="ir.ui.view">
         <field name="name">lagunes.menu.pivot</field>
         <field name="model">lagunes.menu</field>
@@ -172,7 +190,7 @@
         </field>
     </record>
     
-    <!-- Vue graphique - NOUVELLE -->
+    <!-- Vue graphique -->
     <record id="view_lagunes_menu_graph" model="ir.ui.view">
         <field name="name">lagunes.menu.graph</field>
         <field name="model">lagunes.menu</field>
@@ -184,7 +202,7 @@
         </field>
     </record>
     
-    <!-- Vue recherche pour lagunes.menu - AMÉLIORÉE -->
+    <!-- Vue recherche pour lagunes.menu -->
     <record id="view_lagunes_menu_search" model="ir.ui.view">
         <field name="name">lagunes.menu.search</field>
         <field name="model">lagunes.menu</field>
@@ -218,6 +236,8 @@
                         domain="[('commande_ids', '!=', False)]"/>
                 <filter name="filter_no_commands" string="Sans commandes" 
                         domain="[('commande_ids', '=', False)]"/>
+                <filter name="filter_pack_based" string="Basés sur pack" 
+                        domain="[('is_pack_based', '=', True)]"/>
                 
                 <!-- Groupements -->
                 <separator/>
@@ -230,8 +250,6 @@
                             context="{'group_by': 'date:week'}"/>
                     <filter name="group_by_month" string="Mois" 
                             context="{'group_by': 'date:month'}"/>
-                    <filter name="group_by_validity" string="Type de validité" 
-                            context="{'group_by': 'validity_type'}"/>
                     <filter name="group_by_day_of_week" string="Jour de la semaine" 
                             context="{'group_by': 'day_of_week'}"/>
                 </group>
@@ -239,9 +257,9 @@
         </field>
     </record>
     
-    <!-- Action pour voir les menus - AMÉLIORÉE -->
-    <record id="action_lagunes_menu_v2" model="ir.actions.act_window">
-        <field name="name">Menus Cantine</field>
+    <!-- Action pour voir les menus -->
+    <record id="action_lagunes_menu" model="ir.actions.act_window">
+        <field name="name">Menus Quotidiens</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">lagunes.menu</field>
         <field name="view_mode">kanban,calendar,list,form,pivot,graph</field>
@@ -253,8 +271,8 @@
             <p>
                 Gérez les menus quotidiens pour vos entreprises clientes.<br/>
                 <ul>
-                    <li>Définissez des validités journalières, hebdomadaires ou mensuelles</li>
-                    <li>Utilisez des templates pour partager les menus entre entreprises</li>
+                    <li><strong>Un seul menu actif</strong> par entreprise et par jour</li>
+                    <li>Utilisez des <strong>packs</strong> pour créer rapidement des menus</li>
                     <li>Visualisez les commandes directement depuis le menu</li>
                     <li>Utilisez le calendrier pour une vue d'ensemble</li>
                 </ul>

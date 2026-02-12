@@ -74,12 +74,8 @@
                                     </div>
                                     
                                     <div class="d-grid gap-2">
-                                        <a t-attf-href="/cantine/menu/#{commande.entreprise_id.id}" 
-                                           class="btn btn-primary">
-                                            <i class="fa fa-arrow-left"/> Retour au menu
-                                        </a>
-                                        <a href="/cantine/mes_commandes" class="btn btn-outline-secondary">
-                                            <i class="fa fa-list"/> Voir mes commandes
+                                        <a href="/cantine/logout" class="btn btn-primary btn-lg">
+                                            <i class="fa fa-sign-out"/> Se déconnecter
                                         </a>
                                     </div>
                                 </div>
@@ -101,7 +97,7 @@
                             <h2>
                                 <i class="fa fa-list"/> Mes commandes
                             </h2>
-                            <p class="text-muted">Historique de vos commandes, <t t-esc="employee_name"/></p>
+                            <p class="text-muted">Historique de vos commandes</p>
                         </div>
                     </div>
                     
@@ -173,6 +169,125 @@
                             </a>
                         </div>
                     </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Template : Portal Mes Commandes -->
+    <template id="portal_my_commandes" name="Portal Mes Commandes">
+        <t t-call="portal.portal_layout">
+            <div id="wrap" class="o_portal_my_details">
+                <div class="o_portal_my_details_container">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h3 class="page-title">
+                                <i class="fa fa-list"/> Mes Commandes Cantine
+                            </h3>
+                        </div>
+                    </div>
+                    
+                    <!-- Search and Filters -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <form t-action="default_url" method="GET" class="form-inline">
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Date début:</label>
+                                                <input type="date" name="date_begin" class="form-control" t-att-value="date_begin or ''"/>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Date fin:</label>
+                                                <input type="date" name="date_end" class="form-control" t-att-value="date_end or ''"/>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Trier par:</label>
+                                                <select name="sortby" class="form-select">
+                                                    <t t-foreach="searchbar_sortings.items()" t-as="key" t-key="key">
+                                                        <option t-att-value="key" t-att-selected="key == sortby">
+                                                            <t t-esc="searchbar_sortings[key]['label']"/>
+                                                        </option>
+                                                    </t>
+                                                </select>
+                                            </div>
+                                            <div class="col-12">
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fa fa-search"/> Rechercher
+                                                </button>
+                                                <a t-att-href="default_url" class="btn btn-secondary">
+                                                    <i class="fa fa-times"/> Effacer
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Commandes List -->
+                    <t t-if="commandes">
+                        <div class="row">
+                            <t t-foreach="commandes" t-as="commande">
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <span>
+                                                <strong t-esc="commande.reference"/>
+                                            </span>
+                                            <t t-if="commande.state == 'confirmed'">
+                                                <span class="badge rounded-pill text-bg-info">Confirmée</span>
+                                            </t>
+                                            <t t-elif="commande.state == 'preparing'">
+                                                <span class="badge rounded-pill text-bg-warning">En préparation</span>
+                                            </t>
+                                            <t t-elif="commande.state == 'ready'">
+                                                <span class="badge rounded-pill text-bg-primary">Prêt</span>
+                                            </t>
+                                            <t t-elif="commande.state == 'delivered'">
+                                                <span class="badge rounded-pill text-bg-success">Livré</span>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="badge rounded-pill text-bg-secondary" t-esc="commande.state"/>
+                                            </t>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-2">
+                                                <small class="text-muted">
+                                                    <i class="fa fa-calendar"/> 
+                                                    <t t-esc="commande.date.strftime('%d/%m/%Y')"/>
+                                                </small>
+                                            </div>
+                                            <h5 t-esc="commande.plat_id.name"/>
+                                            <t t-if="commande.option_ids">
+                                                <div class="mb-2">
+                                                    <span class="badge rounded-pill text-bg-light" t-esc="commande.get_options_display()"/>
+                                                </div>
+                                            </t>
+                                            <div class="mt-3">
+                                                <strong class="text-primary">
+                                                    <t t-esc="commande.prix_total"/> FCFA
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="row">
+                            <div class="col-lg-6 offset-lg-3">
+                                <div class="alert alert-info text-center">
+                                    <i class="fa fa-inbox fa-3x mb-3"/>
+                                    <h4>Aucune commande</h4>
+                                    <p>Vous n'avez pas encore passé de commande.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
                 </div>
             </div>
         </t>

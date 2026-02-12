@@ -19,27 +19,14 @@
                                     <p class="text-muted">Veuillez entrer vos informations pour accéder à votre menu</p>
                                     
                                     <form id="accessForm" class="needs-validation" novalidate="">
-                                        <div class="mb-3">
-                                            <label for="employee_name" class="form-label">Votre nom complet *</label>
-                                            <input type="text" 
-                                                   class="form-control form-control-lg" 
-                                                   id="employee_name" 
-                                                   name="employee_name" 
-                                                   required="" 
-                                                   placeholder="ex: Jean Kouassi"/>
-                                            <div class="invalid-feedback">
-                                                Veuillez entrer votre nom
-                                            </div>
-                                        </div>
-                                        
                                         <div class="mb-4">
-                                            <label for="access_code" class="form-label">Code entreprise (si requis)</label>
+                                            <label for="access_code" class="form-label">Code entreprise</label>
                                             <input type="password" 
                                                    class="form-control form-control-lg" 
                                                    id="access_code" 
                                                    name="access_code" 
                                                    placeholder="Entrez le code d'accès"/>
-                                            <div class="form-text">Si votre entreprise exige un code, veuillez le saisir ici.</div>
+                                            <div class="form-text">Entrez le code d'accès fourni par votre entreprise.</div>
                                         </div>
                                         
                                         <div id="error_message" class="alert alert-danger d-none" role="alert"></div>
@@ -62,7 +49,6 @@
                                                     return;
                                                 }
                                                 
-                                                const employeeName = document.getElementById('employee_name').value;
                                                 const accessCode = document.getElementById('access_code')?.value || null;
                                                 
                                                 fetch('/cantine/verify_access', {
@@ -74,7 +60,6 @@
                                                         jsonrpc: '2.0',
                                                         method: 'call',
                                                         params: {
-                                                            employee_name: employeeName,
                                                             access_code: accessCode
                                                         }
                                                     })
@@ -125,19 +110,6 @@
                                     
                                     <form id="accessForm" class="needs-validation" novalidate="">
                                         <div class="mb-3">
-                                            <label for="employee_name" class="form-label">Votre nom complet *</label>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="employee_name" 
-                                                   name="employee_name" 
-                                                   required="" 
-                                                   placeholder="ex: Jean Kouassi"/>
-                                            <div class="invalid-feedback">
-                                                Veuillez entrer votre nom
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="mb-3" t-if="entreprise.cantine_code_required">
                                             <label for="access_code" class="form-label">Code d'accès *</label>
                                             <input type="password" 
                                                    class="form-control" 
@@ -186,7 +158,6 @@
                         }
                         
                         const entrepriseId = parseInt(document.getElementById('entreprise_id').value);
-                        const employeeName = document.getElementById('employee_name').value;
                         const accessCode = document.getElementById('access_code')?.value || null;
                         
                         // Appel AJAX
@@ -200,7 +171,6 @@
                                 method: 'call',
                                 params: {
                                     entreprise_id: entrepriseId,
-                                    employee_name: employeeName,
                                     access_code: accessCode
                                 }
                             })

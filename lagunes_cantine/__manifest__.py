@@ -38,11 +38,9 @@
         
         # Vues
         'views/res_partner_views.xml',
-        'views/lagunes_employee_views.xml',
         'views/lagunes_plat_option_views.xml',
-        'views/lagunes_menu_template_views.xml',
+        'views/lagunes_menu_pack_views.xml',
         'views/lagunes_menu_views.xml',
-        'views/lagunes_menu_views_v2.xml',
         'views/lagunes_plat_views.xml',
         'views/lagunes_commande_views.xml',
         'views/lagunes_menu_web.xml',

@@ -46,8 +46,7 @@
                     <group>
                         <group string="Client">
                             <field name="entreprise_id" options="{'no_create': True}"/>
-                            <field name="employee_id" domain="[('entreprise_id', '=', entreprise_id)]" 
-                                   options="{'no_create': True, 'no_open': False}"/>
+                            <field name="employee_name"/>
                             <field name="date" widget="date"/>
                             <field name="create_date" readonly="1" optional="show"/>
                         </group>
@@ -101,7 +100,7 @@
                 <field name="reference"/>
                 <field name="date" widget="date"/>
                 <field name="entreprise_id"/>
-                <field name="employee_id"/>
+                <field name="employee_name" optional="show"/>
                 <field name="plat_id"/>
                 <field name="quantity"/>
                 <field name="prix_total" sum="Total" widget="monetary"/>
@@ -126,7 +125,7 @@
         <field name="arch" type="xml">
             <kanban default_group_by="state" class="o_kanban_small_column" quick_create="false">
                 <field name="reference"/>
-                <field name="employee_id"/>
+                <field name="employee_name"/>
                 <field name="plat_id"/>
                 <field name="quantity"/>
                 <field name="option_ids"/>
@@ -134,7 +133,7 @@
                 <field name="notes"/>
                 <field name="date"/>
                 <templates>
-                    <t t-name="kanban-box">
+                    <t t-name="card">
                         <div class="oe_kanban_global_click">
                             <div class="oe_kanban_content">
                                 <div class="o_kanban_record_top">
@@ -143,16 +142,16 @@
                                             <field name="reference"/>
                                         </strong>
                                         <span class="o_kanban_record_subtitle text-muted">
-                                            <i class="fa fa-clock-o"/> <field name="date"/>
+                                            <i class="fa fa-clock-o" title="Date"/> <field name="date"/>
                                         </span>
                                     </div>
                                 </div>
                                 <div class="o_kanban_record_body mt-2">
                                     <div>
-                                        <i class="fa fa-user"/> <field name="employee_id"/>
+                                        <i class="fa fa-user" title="Employé"/> <field name="employee_name"/>
                                     </div>
                                     <div>
-                                        <i class="fa fa-cutlery"/> <field name="plat_id"/> 
+                                        <i class="fa fa-cutlery" title="Plat"/> <field name="plat_id"/> 
                                         <span class="badge rounded-pill text-bg-secondary">x<field name="quantity"/></span>
                                     </div>
                                 </div>
@@ -161,7 +160,7 @@
                                 </div>
                                 <div t-if="record.notes.raw_value" class="mt-2">
                                     <small class="text-muted">
-                                        <i class="fa fa-comment"/> <t t-esc="record.notes.value"/>
+                                        <i class="fa fa-comment" title="Notes"/> <t t-esc="record.notes.value"/>
                                     </small>
                                 </div>
                             </div>
@@ -250,7 +249,7 @@
                     <filter string="Entreprise" name="group_entreprise" 
                             context="{'group_by': 'entreprise_id'}"/>
                     <filter string="Employé" name="group_employee" 
-                            context="{'group_by': 'employee_id'}"/>
+                            context="{'group_by': 'entreprise_id'}"/>
                     <filter string="Date" name="group_date" 
                             context="{'group_by': 'date:day'}"/>
                     <filter string="Semaine" name="group_week" 

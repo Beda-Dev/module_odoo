@@ -33,18 +33,18 @@
               parent="menu_lagunes_cantine_root" 
               sequence="20"/>
     
-    <!-- Menu Templates -->
-    <menuitem id="menu_lagunes_template" 
-              name="Templates de Menu" 
+    <!-- Menu Packs de menus -->
+    <menuitem id="menu_lagunes_menu_pack" 
+              name="Packs de Menus" 
               parent="menu_lagunes_menus_plats" 
-              action="action_lagunes_menu_template" 
+              action="action_lagunes_menu_pack" 
               sequence="10"/>
     
     <!-- Menu Menus -->
     <menuitem id="menu_lagunes_menu" 
               name="Menus Cantine" 
               parent="menu_lagunes_menus_plats" 
-              action="action_lagunes_menu_v2" 
+              action="action_lagunes_menu" 
               sequence="20"/>
     
     <!-- Menu Plats -->

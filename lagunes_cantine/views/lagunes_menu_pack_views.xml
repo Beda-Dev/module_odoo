@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Vue liste pour lagunes.menu.pack -->
+    <record id="view_lagunes_menu_pack_list" model="ir.ui.view">
+        <field name="name">lagunes.menu.pack.list</field>
+        <field name="model">lagunes.menu.pack</field>
+        <field name="arch" type="xml">
+            <list string="Packs de Menus" 
+                  decoration-success="active == True" 
+                  decoration-muted="active == False"
+                  create="1" edit="1" delete="1">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="plat_count"/>
+                <field name="active" widget="boolean_toggle"/>
+                <field name="description" optional="show"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Vue formulaire pour lagunes.menu.pack -->
+    <record id="view_lagunes_menu_pack_form" model="ir.ui.view">
+        <field name="name">lagunes.menu.pack.form</field>
+        <field name="model">lagunes.menu.pack</field>
+        <field name="arch" type="xml">
+            <form string="Pack de Menus">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Ex: Pack Semaine 1"/>
+                        </h1>
+                    </div>
+                    
+                    <group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="plat_count" readonly="1"/>
+                        </group>
+                    </group>
+                    
+                    <group>
+                        <field name="description" placeholder="Description du pack de menus..."/>
+                        <field name="notes" placeholder="Notes internes..."/>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Plats du Pack">
+                            <field name="plat_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="category_id"/>
+                                    <field name="prix_unitaire"/>
+                                    <field name="active"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Vue kanban pour lagunes.menu.pack -->
+    <record id="view_lagunes_menu_pack_kanban" model="ir.ui.view">
+        <field name="name">lagunes.menu.pack.kanban</field>
+        <field name="model">lagunes.menu.pack</field>
+        <field name="arch" type="xml">
+            <kanban string="Packs de Menus">
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="name"/>
+                                    </strong>
+                                </div>
+                                <div class="o_kanban_manage_button_section">
+                                    <a class="o_kanban_manage_toggle_button" href="#" tabindex="-1">
+                                        <i class="fa fa-ellipsis-v" title="Manage"/>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <span><t t-esc="record.plat_count.value"/> plats</span>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
+    <!-- Action pour lagunes.menu.pack -->
+    <record id="action_lagunes_menu_pack" model="ir.actions.act_window">
+        <field name="name">Packs de Menus</field>
+        <field name="res_model">lagunes.menu.pack</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créez votre premier pack de menus
+            </p>
+            <p>
+                Les packs de menus vous permettent de créer des ensembles de plats réutilisables
+                pour générer rapidement vos menus quotidiens.
+            </p>
+        </field>
+    </record>
+    
+</odoo>

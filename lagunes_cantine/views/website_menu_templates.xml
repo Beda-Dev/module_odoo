@@ -13,12 +13,8 @@
                                 <h3 class="mb-0">
                                     <i class="fa fa-building"/> <t t-esc="entreprise.name"/>
                                 </h3>
-                                <small>Bienvenue, <t t-esc="employee_name"/></small>
                             </div>
                             <div class="col-auto">
-                                <a href="/cantine/mes_commandes" class="btn btn-light btn-sm me-2">
-                                    <i class="fa fa-list"/> Mes commandes
-                                </a>
                                 <a href="/cantine/logout" class="btn btn-outline-light btn-sm">
                                     <i class="fa fa-sign-out"/> Déconnexion
                                 </a>
@@ -109,10 +105,16 @@
                                                           rows="2" 
                                                           placeholder="Ex: sauce à part..."></textarea>
                                             </div>
+
+                                            <!-- Nom employé (optionnel) -->
+                                            <div class="mt-3">
+                                                <label class="form-label">Votre nom (optionnel)</label>
+                                                <input type="text" class="form-control plat-employee-name" placeholder="Ex: Jean Kouassi"/>
+                                            </div>
                                         </div>
                                         
                                         <div class="card-footer bg-white">
-                                            <t t-if="not has_ordered">
+                                            <t t-if="not limit_reached">
                                                 <button type="button" 
                                                         class="btn btn-primary w-100 btn-commander" 
                                                         t-att-data-plat-id="plat.id"

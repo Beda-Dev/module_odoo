@@ -14,11 +14,10 @@
                     <group>
                         <group string="Configuration">
                             <field name="is_cantine_client"/>
-                            <field name="cantine_code_required" invisible="not is_cantine_client"/>
                             <field name="cantine_access_code" 
                                    password="True" 
-                                   invisible="not is_cantine_client or not cantine_code_required"/>
-                            <field name="max_employees" invisible="not is_cantine_client"/>
+                                   invisible="not is_cantine_client"/>
+                            <field name="max_orders_per_day" invisible="not is_cantine_client"/>
                         </group>
                         <group string="Statistiques">
                             <field name="menu_ids" invisible="1"/>
@@ -33,19 +32,7 @@
                                 <field name="commande_ids" nolabel="1" readonly="1" 
                                        widget="statinfo" string="Commandes"/>
                             </div>
-                            <field name="employee_count"/>
-                            <field name="active_employee_count"/>
                         </group>
-                    </group>
-                    
-                    <group string="Employés de l'entreprise" invisible="not is_cantine_client">
-                        <field name="lagunes_employee_ids" nolabel="1" context="{'default_entreprise_id': id}">
-                            <list string="Employés" editable="bottom">
-                                <field name="name" placeholder="Nom complet de l'employé"/>
-                                <field name="active" widget="boolean_toggle"/>
-                                <field name="commande_count" sum="Total commandes"/>
-                            </list>
-                        </field>
                     </group>
                     
                     <group string="Lien d'accès web" invisible="not is_cantine_client">
@@ -72,7 +59,6 @@
                 <field name="name"/>
                 <field name="phone"/>
                 <field name="email"/>
-                <field name="cantine_code_required"/>
                 <field name="cantine_access_code" password="True"/>
             </list>
         </field>

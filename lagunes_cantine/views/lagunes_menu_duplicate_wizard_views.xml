@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Menu Duplicate Wizard Form View -->
+    <record id="view_lagunes_menu_duplicate_wizard_form" model="ir.ui.view">
+        <field name="name">lagunes.menu.duplicate.wizard.form</field>
+        <field name="model">lagunes.menu.duplicate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Dupliquer le menu">
+                <sheet>
+                    <group>
+                        <field name="menu_id" readonly="1"/>
+                        <field name="target_date" required="1"/>
+                        <field name="duplicate_mode" required="1"/>
+                        <field name="date_end" required="duplicate_mode in ['range', 'weekly']" invisible="duplicate_mode == 'single'"/>
+                    </group>
+                    <group>
+                        <field name="target_entreprise_ids" widget="many2many_tags" required="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_duplicate" type="object" string="Dupliquer" class="btn-primary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+</odoo>
